@@ -3,10 +3,31 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WebAR Notice Board</title>
+    <!-- Stable Core Engines -->
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/3.3.1/aframe/build/aframe-ar.js"></script>
     <style>
-      body { margin: 0; overflow: hidden; font-family: sans-serif; }
+      body { margin: 0; overflow: hidden; font-family: -apple-system, sans-serif; }
+      
+      /* Tracking Status Indicator */
+      #status-pill {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(15, 23, 42, 0.85);
+        color: #f8fafc;
+        padding: 8px 18px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        z-index: 999999;
+        pointer-events: none;
+        border: 1px solid #475569;
+        transition: all 0.2s ease;
+      }
+
+      /* Native Touch Controls */
       .touch-controls {
         position: fixed;
         bottom: 24px;
@@ -45,23 +66,30 @@
     </style>
   </head>
   <body>
-    <!-- Screen Overlay UI -->
+    <!-- Real-time Status Badge -->
+    <div id="status-pill">Point camera at Hiro Marker</div>
+
+    <!-- Hidden Rendering Canvas -->
+    <canvas id="posterCanvas" width="700" height="920" style="display:none;"></canvas>
+
+    <!-- UI Overlay -->
     <div class="touch-controls">
       <button class="btn-arrow" onclick="prevNotice()">❮</button>
       <a id="ui-reg-btn" class="btn-reg" href="https://forms.google.com" target="_blank">Register Here ↗</a>
       <button class="btn-arrow" onclick="nextNotice()">❯</button>
     </div>
 
-    <!-- AR Scene (Completely disables VR/Immersive buttons) -->
+    <!-- AR Scene: Optimized for High Stability -->
     <a-scene 
+      id="ar-scene"
       embedded 
       vr-mode-ui="enabled: false" 
-      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono;">
+      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono; patternRatio: 0.5;">
       
-      <a-marker preset="hiro" smooth="true" smoothCount="5" smoothTolerance="0.01">
-        <!-- Single Solid 3D Notice Board: Zero separate text boxes, Zero artifacts -->
+      <!-- Marker Listener -->
+      <a-marker id="hiro-marker" preset="hiro" smooth="true" smoothCount="5" smoothTolerance="0.01">
         <a-plane 
-          id="ar-poster" 
+          id="ar-board" 
           position="0 0.1 0" 
           rotation="-90 0 0" 
           width="2.2" 
@@ -82,9 +110,9 @@
           title2: "& TECH EVENT",
           sub: "Theme: WebAR & Spatial UI",
           countdown: "Ends in: 02d 14h 30m",
-          registered: "142 Registered [PDF]",
-          bg: "%23dcfce7",
-          headerBg: "%2315803d",
+          registered: "142 Registered",
+          bg: "#dcfce7",
+          headerColor: "#15803d",
           regUrl: "https://forms.google.com"
         },
         {
@@ -94,9 +122,9 @@
           title2: "SCHEDULE",
           sub: "Hall Tickets Active on ERP",
           countdown: "Starts in: 12d 06h",
-          registered: "Circulated to All",
-          bg: "%23e0f2fe",
-          headerBg: "%230284c7",
+          registered: "Circulated: All Years",
+          bg: "#e0f2fe",
+          headerColor: "#0284c7",
           regUrl: "https://sathyabama.ac.in"
         },
         {
@@ -106,67 +134,156 @@
           title2: "DRONE FLIGHT",
           sub: "Hands-on Flight Dynamics",
           countdown: "Ends in: 05d 10h",
-          registered: "68 Registered [PDF]",
-          bg: "%23ffedd5",
-          headerBg: "%23ea580c",
+          registered: "68 Registered",
+          bg: "#ffedd5",
+          headerColor: "#ea580c",
           regUrl: "https://forms.google.com"
         }
       ];
 
       let currentIndex = 0;
+      let sceneReady = false;
 
-      function renderNotice() {
+      function drawPoster() {
         const item = notices[currentIndex];
-        
-        // Crisp, Vector-Rendered SVG Board (Zero font-glitches or Z-fighting)
-        const svg = `data:image/svg+xml;utf8,` +
-          `<svg xmlns='http://www.w3.org/2000/svg' width='700' height='920' viewBox='0 0 700 920'>` +
-          `<rect width='700' height='920' fill='white' stroke='%230f172a' stroke-width='8'/>` +
-          `<!-- Top Countdown -->` +
-          `<rect x='110' y='25' width='390' height='65' rx='32' fill='%230f172a'/>` +
-          `<text x='305' y='67' fill='%2338bdf8' font-size='24' font-weight='bold' font-family='sans-serif' text-anchor='middle'>${item.countdown}</text>` +
-          `<!-- Dept Badge -->` +
-          `<circle cx='600' cy='58' r='46' fill='white' stroke='%230f172a' stroke-width='5'/>` +
-          `<text x='600' y='65' fill='%230f172a' font-size='20' font-weight='bold' font-family='sans-serif' text-anchor='middle'>${item.dept}</text>` +
-          `<!-- Main Body -->` +
-          `<rect x='40' y='115' width='620' height='650' rx='24' fill='${item.bg}' stroke='%230f172a' stroke-width='5'/>` +
-          `<!-- Header -->` +
-          `<rect x='70' y='145' width='560' height='90' rx='16' fill='white' stroke='%230f172a' stroke-width='4'/>` +
-          `<text x='350' y='206' fill='${item.headerBg}' font-size='42' font-weight='bold' font-family='sans-serif' text-anchor='middle'>${item.inst}</text>` +
-          `<!-- Titles -->` +
-          `<text x='350' y='330' fill='%230f172a' font-size='44' font-weight='bold' font-family='sans-serif' text-anchor='middle'>${item.title1}</text>` +
-          `<text x='350' y='390' fill='%230f172a' font-size='44' font-weight='bold' font-family='sans-serif' text-anchor='middle'>${item.title2}</text>` +
-          `<text x='350' y='470' fill='%23475569' font-size='26' font-family='sans-serif' text-anchor='middle'>${item.sub}</text>` +
-          `<!-- Carousel Arrows -->` +
-          `<rect x='55' y='550' width='65' height='65' rx='14' fill='white' stroke='%230f172a' stroke-width='4'/>` +
-          `<text x='87' y='595' fill='%230f172a' font-size='36' font-weight='bold' font-family='sans-serif' text-anchor='middle'>‹</text>` +
-          `<rect x='580' y='550' width='65' height='65' rx='14' fill='white' stroke='%230f172a' stroke-width='4'/>` +
-          `<text x='612' y='595' fill='%230f172a' font-size='36' font-weight='bold' font-family='sans-serif' text-anchor='middle'>›</text>` +
-          `<!-- Bottom Bar -->` +
-          `<rect x='40' y='790' width='360' height='90' rx='18' fill='white' stroke='%230f172a' stroke-width='4'/>` +
-          `<text x='65' y='846' fill='%230f172a' font-size='26' font-weight='bold' font-family='sans-serif'>${item.registered}</text>` +
-          `<rect x='420' y='790' width='240' height='90' rx='18' fill='%23f97316' stroke='%230f172a' stroke-width='4'/>` +
-          `<text x='540' y='846' fill='white' font-size='26' font-weight='bold' font-family='sans-serif' text-anchor='middle'>Register ↗</text>` +
-          `</svg>`;
+        const canvas = document.getElementById('posterCanvas');
+        const ctx = canvas.getContext('2d');
 
-        const posterEl = document.getElementById('ar-poster');
-        posterEl.setAttribute('src', svg);
+        // Solid White Outer Base (Eliminates Blank White Board bug)
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = "#0f172a";
+        ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
+
+        // Top Countdown Pill
+        ctx.fillStyle = "#0f172a";
+        roundRect(ctx, 110, 25, 400, 70, 35, true);
+        ctx.fillStyle = "#38bdf8";
+        ctx.font = "bold 26px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(item.countdown, 310, 69);
+
+        // Dept Badge
+        ctx.fillStyle = "#ffffff";
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = "#0f172a";
+        ctx.beginPath();
+        ctx.arc(610, 60, 50, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 24px sans-serif";
+        ctx.fillText(item.dept, 610, 68);
+
+        // Main Poster Card
+        ctx.fillStyle = item.bg;
+        roundRect(ctx, 40, 120, 620, 640, 24, true);
+
+        // Header Title
+        ctx.fillStyle = "#ffffff";
+        roundRect(ctx, 70, 150, 560, 90, 16, true);
+        ctx.fillStyle = item.headerColor;
+        ctx.font = "bold 44px sans-serif";
+        ctx.fillText(item.inst, 350, 212);
+
+        // Body Titles
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 42px sans-serif";
+        ctx.fillText(item.title1, 350, 335);
+        ctx.fillText(item.title2, 350, 395);
+
+        ctx.fillStyle = "#475569";
+        ctx.font = "26px sans-serif";
+        ctx.fillText(item.sub, 350, 480);
+
+        // Navigation Arrows
+        ctx.fillStyle = "#ffffff";
+        roundRect(ctx, 50, 560, 70, 70, 15, true);
+        roundRect(ctx, 580, 560, 70, 70, 15, true);
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 36px sans-serif";
+        ctx.fillText("‹", 85, 608);
+        ctx.fillText("›", 615, 608);
+
+        // Bottom Banner
+        ctx.fillStyle = "#ffffff";
+        roundRect(ctx, 40, 785, 360, 90, 18, true);
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 26px sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(item.registered + " 📄", 65, 842);
+
+        ctx.fillStyle = "#f97316";
+        roundRect(ctx, 420, 785, 240, 90, 18, true);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 26px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Register ↗", 540, 842);
+
+        // Push to WebGL texture safely
+        const plane = document.getElementById('ar-board');
+        if (plane && plane.getObject3D('mesh')) {
+          const mesh = plane.getObject3D('mesh');
+          const texture = new THREE.CanvasTexture(canvas);
+          texture.generateMipmaps = false;
+          texture.minFilter = THREE.LinearFilter;
+          mesh.material.map = texture;
+          mesh.material.needsUpdate = true;
+        }
+
         document.getElementById('ui-reg-btn').setAttribute('href', item.regUrl);
+      }
+
+      function roundRect(ctx, x, y, width, height, radius, fill) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+        if (fill) ctx.fill();
       }
 
       function nextNotice() {
         currentIndex = (currentIndex + 1) % notices.length;
-        renderNotice();
+        drawPoster();
       }
 
       function prevNotice() {
         currentIndex = (currentIndex - 1 + notices.length) % notices.length;
-        renderNotice();
+        drawPoster();
       }
 
-      window.addEventListener('load', () => {
-        renderNotice();
+      // Marker Tracking Event Listeners
+      const marker = document.getElementById('hiro-marker');
+      const statusPill = document.getElementById('status-pill');
+
+      marker.addEventListener('markerFound', () => {
+        statusPill.innerText = "✓ Notice Board Locked";
+        statusPill.style.background = "#15803d";
+        drawPoster(); // Refresh texture when marker is acquired
       });
+
+      marker.addEventListener('markerLost', () => {
+        statusPill.innerText = "Looking for Hiro Marker...";
+        statusPill.style.background = "rgba(15, 23, 42, 0.85)";
+      });
+
+      // Synchronize with A-Frame Scene Loading Loop
+      const scene = document.getElementById('ar-scene');
+      if (scene.hasLoaded) {
+        drawPoster();
+      } else {
+        scene.addEventListener('loaded', () => {
+          setTimeout(drawPoster, 300);
+        });
+      }
     </script>
   </body>
 </html>
