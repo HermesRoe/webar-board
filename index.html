@@ -3,7 +3,7 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WebAR Notice Board</title>
-    <!-- Stable A-Frame & AR.js Builds -->
+    <!-- Stable A-Frame & AR.js Core (No Immersive VR Prompts) -->
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/3.3.2/aframe/build/aframe-ar.js"></script>
     <style>
@@ -12,16 +12,16 @@
         overflow: hidden;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       }
-      /* Direct Touch Navigation Overlay */
+      /* Clean Touch Navigation Bar */
       .touch-nav {
         position: fixed;
-        bottom: 30px;
+        bottom: 25px;
         left: 0;
         right: 0;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0 24px;
+        padding: 0 20px;
         z-index: 999999;
         pointer-events: none;
       }
@@ -30,10 +30,10 @@
         background: #ffffff;
         color: #0f172a;
         border: 2px solid #0f172a;
-        width: 56px;
-        height: 56px;
+        width: 52px;
+        height: 52px;
         border-radius: 50%;
-        font-size: 26px;
+        font-size: 24px;
         font-weight: 800;
         display: flex;
         align-items: center;
@@ -45,9 +45,9 @@
         background: #f97316;
         color: #ffffff;
         border: 2px solid #0f172a;
-        padding: 14px 24px;
-        border-radius: 30px;
-        font-size: 16px;
+        padding: 12px 22px;
+        border-radius: 25px;
+        font-size: 15px;
         font-weight: 700;
         text-decoration: none;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
@@ -55,61 +55,61 @@
     </style>
   </head>
   <body>
-    <!-- Responsive Fallback Controls (Easily Tappable on Any Smartphone) -->
+    <!-- Screen Overlay UI Controls -->
     <div class="touch-nav">
       <button class="nav-btn" onclick="prevNotice()">❮</button>
       <a id="ui-reg-btn" class="reg-action" href="https://forms.google.com" target="_blank">Register Here ↗</a>
       <button class="nav-btn" onclick="nextNotice()">❯</button>
     </div>
 
-    <!-- AR Scene with Hiro Pattern Tracking -->
-    <a-scene embedded arjs="sourceType: webcam; detectionMode: mono; maxDetectionRate: 30; canvasWidth: 640; canvasHeight: 480; debugUIEnabled: false;">
-      <a-marker preset="hiro" emitevents="true" id="hiro-marker">
+    <!-- AR Scene: vr-mode-ui="enabled: false" eliminates the immersive mode alert -->
+    <a-scene embedded vr-mode-ui="enabled: false" arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
+      <a-marker preset="hiro">
         
-        <!-- 1. FLOATING COUNTDOWN PILL (Top) -->
-        <a-entity position="0 0 -1.45" rotation="-90 0 0">
-          <a-plane width="1.6" height="0.32" color="#ffffff" material="opacity: 0.95;" stroke="#0f172a" stroke-width="2">
+        <!-- Top Floating Countdown Pill -->
+        <a-entity position="0 0 -1.35" rotation="-90 0 0">
+          <a-plane width="1.6" height="0.3" color="#ffffff" material="opacity: 0.95;">
             <a-text id="ar-countdown" value="Ends in: 02d 14h 30m" align="center" position="0 0 0.02" width="2.4" color="#0f172a"></a-text>
           </a-plane>
         </a-entity>
 
-        <!-- 2. DEPARTMENT BADGE (Top-Right Anchor) -->
-        <a-entity position="0.95 0 -1.35" rotation="-90 0 0">
-          <a-circle radius="0.28" color="#ffffff" stroke="#0f172a" stroke-width="2">
-            <a-text id="ar-dept" value="Dept of\nCSE" align="center" position="0 0 0.02" width="1.5" color="#0f172a"></a-text>
+        <!-- Department Circle Badge -->
+        <a-entity position="0.95 0 -1.3" rotation="-90 0 0">
+          <a-circle radius="0.26" color="#ffffff">
+            <a-text id="ar-dept" value="Dept of\nCSE" align="center" position="0 0 0.02" width="1.4" color="#0f172a"></a-text>
           </a-circle>
         </a-entity>
 
-        <!-- 3. MAIN NOTICE BOARD CANVAS -->
+        <!-- Main 3D Poster Plane -->
         <a-entity position="0 0 0" rotation="-90 0 0">
-          <!-- Main Poster Canvas -->
-          <a-plane id="ar-canvas" width="2.0" height="2.4" color="#dcfce7" material="opacity: 0.98;">
-            <!-- Header Stripe -->
-            <a-plane position="0 0.85 0.01" width="1.9" height="0.45" color="#ffffff">
-              <a-text id="ar-institution" value="Sathyabama" align="center" position="0 0 0.02" width="3.2" color="#15803d" font="kelsonsans"></a-text>
+          <!-- Canvas Body -->
+          <a-plane id="ar-canvas" width="1.9" height="2.2" color="#dcfce7" material="opacity: 0.98;">
+            <!-- University Header Banner -->
+            <a-plane position="0 0.75 0.01" width="1.8" height="0.4" color="#ffffff">
+              <a-text id="ar-institution" value="Sathyabama" align="center" position="0 0 0.02" width="3.2" color="#15803d"></a-text>
             </a-plane>
-            <!-- Event Title -->
-            <a-text id="ar-title" value="Hackathon\n&\nTech Event" align="center" position="0 0.15 0.02" width="3.0" color="#0f172a" font="kelsonsans"></a-text>
-            <!-- Details Subtitle -->
-            <a-text id="ar-sub" value="Theme: WebAR & Spatial UI" align="center" position="0 -0.45 0.02" width="1.8" color="#334155"></a-text>
+            <!-- Title -->
+            <a-text id="ar-title" value="Hackathon\n&\nTech Event" align="center" position="0 0.1 0.02" width="2.8" color="#0f172a"></a-text>
+            <!-- Subtitle -->
+            <a-text id="ar-sub" value="Theme: WebAR & Spatial UI" align="center" position="0 -0.4 0.02" width="1.8" color="#334155"></a-text>
           </a-plane>
 
-          <!-- Lateral 3D Carousel Arrows -->
-          <a-plane position="-1.25 0 0.02" width="0.35" height="0.45" color="#ffffff">
+          <!-- 3D Carousel Side Arrow Indicators -->
+          <a-plane position="-1.15 0 0.02" width="0.3" height="0.4" color="#ffffff">
             <a-text value="<" align="center" position="0 0 0.02" width="3" color="#0f172a"></a-text>
           </a-plane>
-          <a-plane position="1.25 0 0.02" width="0.35" height="0.45" color="#ffffff">
+          <a-plane position="1.15 0 0.02" width="0.3" height="0.4" color="#ffffff">
             <a-text value=">" align="center" position="0 0 0.02" width="3" color="#0f172a"></a-text>
           </a-plane>
 
-          <!-- 4. BOTTOM REGISTRATION BAR & METRICS -->
-          <a-plane position="-0.35 -1.4 0.02" width="1.3" height="0.35" color="#ffffff">
-            <a-text id="ar-registered" value="142 Registered [PDF]" align="center" position="0 0 0.02" width="2.2" color="#0f172a"></a-text>
+          <!-- Bottom Registration & Attachment Bar -->
+          <a-plane position="-0.3 -1.3 0.02" width="1.2" height="0.32" color="#ffffff">
+            <a-text id="ar-registered" value="142 Registered [PDF]" align="center" position="0 0 0.02" width="2.0" color="#0f172a"></a-text>
           </a-plane>
 
-          <!-- 5. CORNER ACTION BUTTON -->
-          <a-plane position="0.65 -1.55 0.04" width="0.95" height="0.32" color="#f97316">
-            <a-text value="Register ↗" align="center" position="0 0 0.02" width="2.2" color="#ffffff"></a-text>
+          <!-- Action Tag -->
+          <a-plane position="0.6 -1.45 0.04" width="0.85" height="0.3" color="#f97316">
+            <a-text value="Register ↗" align="center" position="0 0 0.02" width="2.0" color="#ffffff"></a-text>
           </a-plane>
         </a-entity>
 
@@ -118,7 +118,6 @@
     </a-scene>
 
     <script>
-      // Multi-Notice Dataset Matching Reference Diagram Architecture
       const notices = [
         {
           dept: "Dept of\nCSE",
@@ -128,7 +127,6 @@
           countdown: "Ends in: 02d 14h 30m",
           registered: "142 Registered [PDF]",
           canvasColor: "#dcfce7",
-          titleColor: "#15803d",
           regUrl: "https://forms.google.com"
         },
         {
@@ -136,21 +134,19 @@
           inst: "University",
           title: "Semester\nExam Schedule",
           sub: "Hall Tickets on ERP Portal",
-          countdown: "Starts in: 12d 06h 00m",
-          registered: "Circulated: All Years",
+          countdown: "Starts in: 12d 06h",
+          registered: "All Years Active",
           canvasColor: "#e0f2fe",
-          titleColor: "#0369a1",
           regUrl: "https://sathyabama.ac.in"
         },
         {
           dept: "School of\nMech",
           inst: "Workshop",
           title: "Robotics &\nDrone Flight",
-          sub: "Hands-on Flight Dynamics",
-          countdown: "Ends in: 05d 10h 15m",
+          sub: "Hands-on Flight Control",
+          countdown: "Ends in: 05d 10h",
           registered: "68 Registered [PDF]",
           canvasColor: "#ffedd5",
-          titleColor: "#c2410c",
           regUrl: "https://forms.google.com"
         }
       ];
@@ -179,7 +175,6 @@
         updateBoard();
       }
 
-      // Initialize on load
       window.onload = updateBoard;
     </script>
   </body>
