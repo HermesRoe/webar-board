@@ -3,17 +3,17 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WebAR Notice Board</title>
-    <!-- Stable A-Frame & AR.js Core (No Immersive VR Prompts) -->
+    <!-- Proven, Rock-Solid Library Pair -->
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/3.3.2/aframe/build/aframe-ar.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/3.3.1/aframe/build/aframe-ar.js"></script>
     <style>
       body {
         margin: 0;
         overflow: hidden;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       }
-      /* Clean Touch Navigation Bar */
-      .touch-nav {
+      /* UI Controls - Clean, Big, Touch-Friendly */
+      .touch-controls {
         position: fixed;
         bottom: 25px;
         left: 0;
@@ -22,10 +22,10 @@
         justify-content: space-between;
         align-items: center;
         padding: 0 20px;
-        z-index: 999999;
+        z-index: 10000;
         pointer-events: none;
       }
-      .nav-btn {
+      .btn-arrow {
         pointer-events: auto;
         background: #ffffff;
         color: #0f172a;
@@ -35,92 +35,88 @@
         border-radius: 50%;
         font-size: 24px;
         font-weight: 800;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       }
-      .reg-action {
+      .btn-reg {
         pointer-events: auto;
         background: #f97316;
         color: #ffffff;
         border: 2px solid #0f172a;
-        padding: 12px 22px;
+        padding: 12px 24px;
         border-radius: 25px;
         font-size: 15px;
-        font-weight: 700;
+        font-weight: bold;
         text-decoration: none;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       }
     </style>
   </head>
   <body>
-    <!-- Screen Overlay UI Controls -->
-    <div class="touch-nav">
-      <button class="nav-btn" onclick="prevNotice()">❮</button>
-      <a id="ui-reg-btn" class="reg-action" href="https://forms.google.com" target="_blank">Register Here ↗</a>
-      <button class="nav-btn" onclick="nextNotice()">❯</button>
+    <!-- Screen Overlay UI Buttons -->
+    <div class="touch-controls">
+      <button class="btn-arrow" onclick="prevNotice()">❮</button>
+      <a id="ui-reg-btn" class="btn-reg" href="https://forms.google.com" target="_blank">Register Here ↗</a>
+      <button class="btn-arrow" onclick="nextNotice()">❯</button>
     </div>
 
-    <!-- AR Scene: vr-mode-ui="enabled: false" eliminates the immersive mode alert -->
-    <a-scene embedded vr-mode-ui="enabled: false" arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
+    <!-- AR Scene: Zero-Lag Settings -->
+    <a-scene 
+      embedded 
+      vr-mode-ui="enabled: false" 
+      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono;">
+      
       <a-marker preset="hiro">
         
-        <!-- Top Floating Countdown Pill -->
-        <a-entity position="0 0 -1.35" rotation="-90 0 0">
-          <a-plane width="1.6" height="0.3" color="#ffffff" material="opacity: 0.95;">
-            <a-text id="ar-countdown" value="Ends in: 02d 14h 30m" align="center" position="0 0 0.02" width="2.4" color="#0f172a"></a-text>
+        <!-- Root Entity Raised Slightly Above the Marker -->
+        <a-entity position="0 0.2 0">
+
+          <!-- 1. Top Floating Countdown -->
+          <a-plane position="0 1.3 0" width="1.6" height="0.25" color="#0f172a" material="opacity: 0.95">
+            <a-text id="ar-countdown" value="Ends in: 02d 14h 30m" align="center" position="0 0 0.02" width="2.4" color="#38bdf8"></a-text>
           </a-plane>
-        </a-entity>
 
-        <!-- Department Circle Badge -->
-        <a-entity position="0.95 0 -1.3" rotation="-90 0 0">
-          <a-circle radius="0.26" color="#ffffff">
-            <a-text id="ar-dept" value="Dept of\nCSE" align="center" position="0 0 0.02" width="1.4" color="#0f172a"></a-text>
+          <!-- 2. Dept Circle Badge -->
+          <a-circle position="0.9 1.3 0" radius="0.22" color="#ffffff">
+            <a-text id="ar-dept" value="CSE" align="center" position="0 0 0.02" width="2" color="#0f172a"></a-text>
           </a-circle>
-        </a-entity>
 
-        <!-- Main 3D Poster Plane -->
-        <a-entity position="0 0 0" rotation="-90 0 0">
-          <!-- Canvas Body -->
-          <a-plane id="ar-canvas" width="1.9" height="2.2" color="#dcfce7" material="opacity: 0.98;">
-            <!-- University Header Banner -->
-            <a-plane position="0 0.75 0.01" width="1.8" height="0.4" color="#ffffff">
+          <!-- 3. Main Poster Canvas (Faces Upright at the User) -->
+          <a-plane id="ar-canvas" position="0 0.1 0" width="1.8" height="2.0" color="#dcfce7">
+            <!-- Header -->
+            <a-plane position="0 0.7 0.01" width="1.65" height="0.35" color="#ffffff">
               <a-text id="ar-institution" value="Sathyabama" align="center" position="0 0 0.02" width="3.2" color="#15803d"></a-text>
             </a-plane>
             <!-- Title -->
             <a-text id="ar-title" value="Hackathon\n&\nTech Event" align="center" position="0 0.1 0.02" width="2.8" color="#0f172a"></a-text>
             <!-- Subtitle -->
-            <a-text id="ar-sub" value="Theme: WebAR & Spatial UI" align="center" position="0 -0.4 0.02" width="1.8" color="#334155"></a-text>
+            <a-text id="ar-sub" value="Theme: WebAR & Spatial UI" align="center" position="0 -0.45 0.02" width="1.8" color="#334155"></a-text>
           </a-plane>
 
-          <!-- 3D Carousel Side Arrow Indicators -->
-          <a-plane position="-1.15 0 0.02" width="0.3" height="0.4" color="#ffffff">
+          <!-- 4. Lateral Navigation Indicators -->
+          <a-plane position="-1.05 0.1 0.02" width="0.25" height="0.35" color="#ffffff">
             <a-text value="<" align="center" position="0 0 0.02" width="3" color="#0f172a"></a-text>
           </a-plane>
-          <a-plane position="1.15 0 0.02" width="0.3" height="0.4" color="#ffffff">
+          <a-plane position="1.05 0.1 0.02" width="0.25" height="0.35" color="#ffffff">
             <a-text value=">" align="center" position="0 0 0.02" width="3" color="#0f172a"></a-text>
           </a-plane>
 
-          <!-- Bottom Registration & Attachment Bar -->
-          <a-plane position="-0.3 -1.3 0.02" width="1.2" height="0.32" color="#ffffff">
-            <a-text id="ar-registered" value="142 Registered [PDF]" align="center" position="0 0 0.02" width="2.0" color="#0f172a"></a-text>
+          <!-- 5. Bottom Registration Count -->
+          <a-plane position="0 -1.05 0.02" width="1.5" height="0.28" color="#ffffff">
+            <a-text id="ar-registered" value="142 Registered [PDF]" align="center" position="0 0 0.02" width="2.2" color="#0f172a"></a-text>
           </a-plane>
 
-          <!-- Action Tag -->
-          <a-plane position="0.6 -1.45 0.04" width="0.85" height="0.3" color="#f97316">
-            <a-text value="Register ↗" align="center" position="0 0 0.02" width="2.0" color="#ffffff"></a-text>
-          </a-plane>
         </a-entity>
 
       </a-marker>
+      
       <a-entity camera></a-entity>
     </a-scene>
 
     <script>
       const notices = [
         {
-          dept: "Dept of\nCSE",
+          dept: "CSE",
           inst: "Sathyabama",
           title: "Hackathon\n&\nTech Event",
           sub: "Theme: WebAR & Spatial UI",
@@ -130,17 +126,17 @@
           regUrl: "https://forms.google.com"
         },
         {
-          dept: "Exam\nCell",
+          dept: "Exam",
           inst: "University",
           title: "Semester\nExam Schedule",
-          sub: "Hall Tickets on ERP Portal",
+          sub: "Hall Tickets Available",
           countdown: "Starts in: 12d 06h",
-          registered: "All Years Active",
+          registered: "Circulated to All",
           canvasColor: "#e0f2fe",
           regUrl: "https://sathyabama.ac.in"
         },
         {
-          dept: "School of\nMech",
+          dept: "Mech",
           inst: "Workshop",
           title: "Robotics &\nDrone Flight",
           sub: "Hands-on Flight Control",
