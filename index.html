@@ -3,7 +3,7 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WebAR Notice Board</title>
-    <!-- Stable A-Frame & AR.js Core -->
+    <!-- Stable Engine Builds -->
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/3.3.1/aframe/build/aframe-ar.js"></script>
     <style>
@@ -52,32 +52,32 @@
     </style>
   </head>
   <body>
-    <!-- 2D High-Performance Canvas (Render Engine) -->
-    <canvas id="posterCanvas" width="800" height="1050" style="display:none;"></canvas>
+    <!-- Hidden High-Res 2D Offscreen Canvas -->
+    <canvas id="posterCanvas" width="700" height="920" style="display:none;"></canvas>
 
-    <!-- Native Smartphone Touch Controls -->
+    <!-- Bottom Touch Overlay Controls -->
     <div class="touch-controls">
       <button class="btn-arrow" onclick="prevNotice()">❮</button>
       <a id="ui-reg-btn" class="btn-reg" href="https://forms.google.com" target="_blank">Register Here ↗</a>
       <button class="btn-arrow" onclick="nextNotice()">❯</button>
     </div>
 
-    <!-- AR Scene: Optimized Smooth Tracking Pipeline -->
+    <!-- AR Scene: Jitter-Free Settings -->
     <a-scene 
       embedded 
       vr-mode-ui="enabled: false" 
-      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono; patternRatio: 0.50; maxDetectionRate: 60;">
+      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono; matrixCodeType: 3x3;">
       
-      <!-- Marker Tracking Root with Jitter Damping -->
-      <a-marker preset="hiro" smooth="true" smoothCount="10" smoothTolerance="0.01" smoothThreshold="5">
-        <!-- 3D Poster Entity Plane -->
+      <!-- Marker Tracking Root with Interpolated Damping -->
+      <a-marker preset="hiro" smooth="true" smoothCount="8" smoothTolerance="0.01" smoothThreshold="3">
+        <!-- Single Opaque Plane: Zero Alpha / Zero TV Scanlines -->
         <a-plane 
           id="ar-board" 
           position="0 0.1 0" 
           rotation="-90 0 0" 
           width="2.2" 
           height="2.9" 
-          material="shader: flat; transparent: true; opacity: 1.0;">
+          material="shader: flat; transparent: false; depthTest: true;">
         </a-plane>
       </a-marker>
       
@@ -87,35 +87,35 @@
     <script>
       const notices = [
         {
-          dept: "Dept of CSE",
+          dept: "CSE",
           inst: "Sathyabama",
           title: "Hackathon & Tech Event",
           sub: "Theme: WebAR & Spatial UI",
           countdown: "Ends in: 02d 14h 30m",
           registered: "142 Registered",
-          bgColor: "#f0fdf4",
-          headerColor: "#16a34a",
+          cardBg: "#dcfce7",
+          headerColor: "#15803d",
           regUrl: "https://forms.google.com"
         },
         {
-          dept: "Exam Cell",
+          dept: "Exam",
           inst: "University",
           title: "Semester Exam Schedule",
           sub: "Hall Tickets Active on ERP",
           countdown: "Starts in: 12d 06h",
           registered: "Circulated: All Years",
-          bgColor: "#f0f9ff",
+          cardBg: "#e0f2fe",
           headerColor: "#0284c7",
           regUrl: "https://sathyabama.ac.in"
         },
         {
-          dept: "School of Mech",
+          dept: "Mech",
           inst: "Workshop",
           title: "Robotics & Drone Flight",
           sub: "Hands-on Flight Dynamics",
           countdown: "Ends in: 05d 10h",
           registered: "68 Registered",
-          bgColor: "#fff7ed",
+          cardBg: "#ffedd5",
           headerColor: "#ea580c",
           regUrl: "https://forms.google.com"
         }
@@ -123,95 +123,105 @@
 
       let currentIndex = 0;
 
-      function drawPosterToCanvas() {
+      function renderCanvasTexture() {
         const item = notices[currentIndex];
         const canvas = document.getElementById('posterCanvas');
         const ctx = canvas.getContext('2d');
 
-        // 1. Clear Canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // 2. Top Floating Pill (Countdown)
+        // 1. SOLID BACKGROUND FILL (Kills CRT scanlines & WebGL depth fighting)
         ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Outer Board Outline
+        ctx.lineWidth = 10;
         ctx.strokeStyle = "#0f172a";
-        ctx.lineWidth = 6;
-        roundRect(ctx, 160, 20, 480, 75, 38, true, true);
-        ctx.fillStyle = "#0f172a";
-        ctx.font = "bold 32px sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText(item.countdown, 400, 70);
+        ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
 
-        // 3. Department Circular Badge (Top Right)
+        // 2. TOP FLOATING COUNTDOWN PILL
+        ctx.fillStyle = "#0f172a";
+        roundRect(ctx, 110, 25, 400, 70, 35, true, false);
+        ctx.fillStyle = "#38bdf8";
+        ctx.font = "bold 26px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(item.countdown, 310, 69);
+
+        // 3. DEPARTMENT BADGE (Top Right)
         ctx.fillStyle = "#ffffff";
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = "#0f172a";
         ctx.beginPath();
-        ctx.arc(710, 65, 55, 0, Math.PI * 2);
+        ctx.arc(610, 60, 50, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
         ctx.fillStyle = "#0f172a";
-        ctx.font = "bold 20px sans-serif";
-        ctx.fillText("Dept of", 710, 55);
-        ctx.fillText(item.dept.replace("Dept of ", ""), 710, 80);
+        ctx.font = "bold 24px sans-serif";
+        ctx.fillText(item.dept, 610, 68);
 
-        // 4. Main Notice Canvas Body
-        ctx.fillStyle = item.bgColor;
-        roundRect(ctx, 90, 120, 620, 760, 28, true, true);
+        // 4. MAIN POSTER BODY
+        ctx.fillStyle = item.cardBg;
+        roundRect(ctx, 40, 120, 620, 640, 24, true, true);
 
-        // University Header Box
+        // University Name Header
         ctx.fillStyle = "#ffffff";
-        roundRect(ctx, 130, 160, 540, 110, 20, true, true);
+        roundRect(ctx, 70, 150, 560, 90, 16, true, true);
         ctx.fillStyle = item.headerColor;
-        ctx.font = "bold 48px sans-serif";
-        ctx.fillText(item.inst, 400, 235);
-
-        // Event Title
-        ctx.fillStyle = "#0f172a";
         ctx.font = "bold 44px sans-serif";
-        const titleWords = item.title.split(" & ");
-        if (titleWords.length > 1) {
-          ctx.fillText(titleWords[0], 400, 360);
-          ctx.fillText("& " + titleWords[1], 400, 420);
+        ctx.fillText(item.inst, 350, 212);
+
+        // Main Title
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 40px sans-serif";
+        const parts = item.title.split(" & ");
+        if (parts.length > 1) {
+          ctx.fillText(parts[0], 350, 330);
+          ctx.fillText("& " + parts[1], 350, 390);
         } else {
-          ctx.fillText(item.title, 400, 390);
+          ctx.fillText(item.title, 350, 360);
         }
 
         // Subtitle
         ctx.fillStyle = "#475569";
-        ctx.font = "30px sans-serif";
-        ctx.fillText(item.sub, 400, 510);
+        ctx.font = "26px sans-serif";
+        ctx.fillText(item.sub, 350, 480);
 
-        // 5. Lateral Carousel Arrows (< and >)
+        // 5. CAROUSEL SIDE ARROWS
         ctx.fillStyle = "#ffffff";
-        roundRect(ctx, 20, 430, 60, 90, 16, true, true);
-        roundRect(ctx, 720, 430, 60, 90, 16, true, true);
+        roundRect(ctx, 50, 560, 70, 70, 15, true, true);
+        roundRect(ctx, 580, 560, 70, 70, 15, true, true);
         ctx.fillStyle = "#0f172a";
-        ctx.font = "bold 42px sans-serif";
-        ctx.fillText("‹", 50, 490);
-        ctx.fillText("›", 750, 490);
+        ctx.font = "bold 36px sans-serif";
+        ctx.fillText("‹", 85, 608);
+        ctx.fillText("›", 615, 608);
 
-        // 6. Bottom Registration Box
+        // 6. BOTTOM METRICS & REGISTRATION
         ctx.fillStyle = "#ffffff";
-        roundRect(ctx, 90, 910, 380, 95, 20, true, true);
+        roundRect(ctx, 40, 785, 360, 90, 18, true, true);
         ctx.fillStyle = "#0f172a";
-        ctx.font = "bold 32px sans-serif";
+        ctx.font = "bold 26px sans-serif";
         ctx.textAlign = "left";
-        ctx.fillText(item.registered + " 📄", 120, 970);
+        ctx.fillText(item.registered + " 📄", 65, 842);
 
-        // 7. Bottom Right Action Link
+        // 7. BOTTOM ACTION BUTTON
         ctx.fillStyle = "#f97316";
-        roundRect(ctx, 490, 910, 220, 95, 20, true, true);
+        roundRect(ctx, 420, 785, 240, 90, 18, true, true);
         ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 30px sans-serif";
+        ctx.font = "bold 26px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("Register ↗", 600, 970);
+        ctx.fillText("Register ↗", 540, 842);
 
-        // 8. Push texture directly to A-Frame Plane
+        // 8. UPDATE WEBGL TEXTURE (Flawless Opaque Sync)
         const plane = document.getElementById('ar-board');
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.minFilter = THREE.LinearFilter;
-        const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
-        plane.getObject3D('mesh').material = material;
-        
-        // Sync Screen Link
+        const mesh = plane.getObject3D('mesh');
+        if (mesh) {
+          const texture = new THREE.CanvasTexture(canvas);
+          texture.generateMipmaps = false;
+          texture.minFilter = THREE.LinearFilter;
+          texture.magFilter = THREE.LinearFilter;
+          mesh.material.map = texture;
+          mesh.material.needsUpdate = true;
+        }
+
+        // Sync Mobile Screen Link
         document.getElementById('ui-reg-btn').setAttribute('href', item.regUrl);
       }
 
@@ -233,17 +243,17 @@
 
       function nextNotice() {
         currentIndex = (currentIndex + 1) % notices.length;
-        drawPosterToCanvas();
+        renderCanvasTexture();
       }
 
       function prevNotice() {
         currentIndex = (currentIndex - 1 + notices.length) % notices.length;
-        drawPosterToCanvas();
+        renderCanvasTexture();
       }
 
-      // Initial Render once AR Scene is Ready
+      // Initialize render once DOM & WebGL mesh are compiled
       window.addEventListener('load', () => {
-        setTimeout(drawPosterToCanvas, 600);
+        setTimeout(renderCanvasTexture, 800);
       });
     </script>
   </body>
