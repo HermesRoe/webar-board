@@ -3,7 +3,7 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WebAR Notice Board</title>
-    <!-- Proven, Rock-Solid Library Pair -->
+    <!-- Stable A-Frame & AR.js Core -->
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/3.3.1/aframe/build/aframe-ar.js"></script>
     <style>
@@ -12,7 +12,7 @@
         overflow: hidden;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       }
-      /* UI Controls - Clean, Big, Touch-Friendly */
+      /* Screen Navigation Overlay */
       .touch-controls {
         position: fixed;
         bottom: 25px;
@@ -21,8 +21,8 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0 20px;
-        z-index: 10000;
+        padding: 0 24px;
+        z-index: 100000;
         pointer-events: none;
       }
       .btn-arrow {
@@ -30,13 +30,12 @@
         background: #ffffff;
         color: #0f172a;
         border: 2px solid #0f172a;
-        width: 52px;
-        height: 52px;
+        width: 54px;
+        height: 54px;
         border-radius: 50%;
-        font-size: 24px;
+        font-size: 26px;
         font-weight: 800;
-        cursor: pointer;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       }
       .btn-reg {
         pointer-events: auto;
@@ -45,69 +44,41 @@
         border: 2px solid #0f172a;
         padding: 12px 24px;
         border-radius: 25px;
-        font-size: 15px;
+        font-size: 16px;
         font-weight: bold;
         text-decoration: none;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       }
     </style>
   </head>
   <body>
-    <!-- Screen Overlay UI Buttons -->
+    <!-- 2D High-Performance Canvas (Render Engine) -->
+    <canvas id="posterCanvas" width="800" height="1050" style="display:none;"></canvas>
+
+    <!-- Native Smartphone Touch Controls -->
     <div class="touch-controls">
       <button class="btn-arrow" onclick="prevNotice()">❮</button>
       <a id="ui-reg-btn" class="btn-reg" href="https://forms.google.com" target="_blank">Register Here ↗</a>
       <button class="btn-arrow" onclick="nextNotice()">❯</button>
     </div>
 
-    <!-- AR Scene: Zero-Lag Settings -->
+    <!-- AR Scene: Optimized Smooth Tracking Pipeline -->
     <a-scene 
       embedded 
       vr-mode-ui="enabled: false" 
-      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono;">
+      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono; patternRatio: 0.50; maxDetectionRate: 60;">
       
-      <a-marker preset="hiro">
-        
-        <!-- Root Entity Raised Slightly Above the Marker -->
-        <a-entity position="0 0.2 0">
-
-          <!-- 1. Top Floating Countdown -->
-          <a-plane position="0 1.3 0" width="1.6" height="0.25" color="#0f172a" material="opacity: 0.95">
-            <a-text id="ar-countdown" value="Ends in: 02d 14h 30m" align="center" position="0 0 0.02" width="2.4" color="#38bdf8"></a-text>
-          </a-plane>
-
-          <!-- 2. Dept Circle Badge -->
-          <a-circle position="0.9 1.3 0" radius="0.22" color="#ffffff">
-            <a-text id="ar-dept" value="CSE" align="center" position="0 0 0.02" width="2" color="#0f172a"></a-text>
-          </a-circle>
-
-          <!-- 3. Main Poster Canvas (Faces Upright at the User) -->
-          <a-plane id="ar-canvas" position="0 0.1 0" width="1.8" height="2.0" color="#dcfce7">
-            <!-- Header -->
-            <a-plane position="0 0.7 0.01" width="1.65" height="0.35" color="#ffffff">
-              <a-text id="ar-institution" value="Sathyabama" align="center" position="0 0 0.02" width="3.2" color="#15803d"></a-text>
-            </a-plane>
-            <!-- Title -->
-            <a-text id="ar-title" value="Hackathon\n&\nTech Event" align="center" position="0 0.1 0.02" width="2.8" color="#0f172a"></a-text>
-            <!-- Subtitle -->
-            <a-text id="ar-sub" value="Theme: WebAR & Spatial UI" align="center" position="0 -0.45 0.02" width="1.8" color="#334155"></a-text>
-          </a-plane>
-
-          <!-- 4. Lateral Navigation Indicators -->
-          <a-plane position="-1.05 0.1 0.02" width="0.25" height="0.35" color="#ffffff">
-            <a-text value="<" align="center" position="0 0 0.02" width="3" color="#0f172a"></a-text>
-          </a-plane>
-          <a-plane position="1.05 0.1 0.02" width="0.25" height="0.35" color="#ffffff">
-            <a-text value=">" align="center" position="0 0 0.02" width="3" color="#0f172a"></a-text>
-          </a-plane>
-
-          <!-- 5. Bottom Registration Count -->
-          <a-plane position="0 -1.05 0.02" width="1.5" height="0.28" color="#ffffff">
-            <a-text id="ar-registered" value="142 Registered [PDF]" align="center" position="0 0 0.02" width="2.2" color="#0f172a"></a-text>
-          </a-plane>
-
-        </a-entity>
-
+      <!-- Marker Tracking Root with Jitter Damping -->
+      <a-marker preset="hiro" smooth="true" smoothCount="10" smoothTolerance="0.01" smoothThreshold="5">
+        <!-- 3D Poster Entity Plane -->
+        <a-plane 
+          id="ar-board" 
+          position="0 0.1 0" 
+          rotation="-90 0 0" 
+          width="2.2" 
+          height="2.9" 
+          material="shader: flat; transparent: true; opacity: 1.0;">
+        </a-plane>
       </a-marker>
       
       <a-entity camera></a-entity>
@@ -116,62 +87,164 @@
     <script>
       const notices = [
         {
-          dept: "CSE",
+          dept: "Dept of CSE",
           inst: "Sathyabama",
-          title: "Hackathon\n&\nTech Event",
+          title: "Hackathon & Tech Event",
           sub: "Theme: WebAR & Spatial UI",
           countdown: "Ends in: 02d 14h 30m",
-          registered: "142 Registered [PDF]",
-          canvasColor: "#dcfce7",
+          registered: "142 Registered",
+          bgColor: "#f0fdf4",
+          headerColor: "#16a34a",
           regUrl: "https://forms.google.com"
         },
         {
-          dept: "Exam",
+          dept: "Exam Cell",
           inst: "University",
-          title: "Semester\nExam Schedule",
-          sub: "Hall Tickets Available",
+          title: "Semester Exam Schedule",
+          sub: "Hall Tickets Active on ERP",
           countdown: "Starts in: 12d 06h",
-          registered: "Circulated to All",
-          canvasColor: "#e0f2fe",
+          registered: "Circulated: All Years",
+          bgColor: "#f0f9ff",
+          headerColor: "#0284c7",
           regUrl: "https://sathyabama.ac.in"
         },
         {
-          dept: "Mech",
+          dept: "School of Mech",
           inst: "Workshop",
-          title: "Robotics &\nDrone Flight",
-          sub: "Hands-on Flight Control",
+          title: "Robotics & Drone Flight",
+          sub: "Hands-on Flight Dynamics",
           countdown: "Ends in: 05d 10h",
-          registered: "68 Registered [PDF]",
-          canvasColor: "#ffedd5",
+          registered: "68 Registered",
+          bgColor: "#fff7ed",
+          headerColor: "#ea580c",
           regUrl: "https://forms.google.com"
         }
       ];
 
       let currentIndex = 0;
 
-      function updateBoard() {
+      function drawPosterToCanvas() {
         const item = notices[currentIndex];
-        document.getElementById('ar-dept').setAttribute('value', item.dept);
-        document.getElementById('ar-institution').setAttribute('value', item.inst);
-        document.getElementById('ar-title').setAttribute('value', item.title);
-        document.getElementById('ar-sub').setAttribute('value', item.sub);
-        document.getElementById('ar-countdown').setAttribute('value', item.countdown);
-        document.getElementById('ar-registered').setAttribute('value', item.registered);
-        document.getElementById('ar-canvas').setAttribute('color', item.canvasColor);
+        const canvas = document.getElementById('posterCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 1. Clear Canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 2. Top Floating Pill (Countdown)
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = "#0f172a";
+        ctx.lineWidth = 6;
+        roundRect(ctx, 160, 20, 480, 75, 38, true, true);
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 32px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(item.countdown, 400, 70);
+
+        // 3. Department Circular Badge (Top Right)
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(710, 65, 55, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 20px sans-serif";
+        ctx.fillText("Dept of", 710, 55);
+        ctx.fillText(item.dept.replace("Dept of ", ""), 710, 80);
+
+        // 4. Main Notice Canvas Body
+        ctx.fillStyle = item.bgColor;
+        roundRect(ctx, 90, 120, 620, 760, 28, true, true);
+
+        // University Header Box
+        ctx.fillStyle = "#ffffff";
+        roundRect(ctx, 130, 160, 540, 110, 20, true, true);
+        ctx.fillStyle = item.headerColor;
+        ctx.font = "bold 48px sans-serif";
+        ctx.fillText(item.inst, 400, 235);
+
+        // Event Title
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 44px sans-serif";
+        const titleWords = item.title.split(" & ");
+        if (titleWords.length > 1) {
+          ctx.fillText(titleWords[0], 400, 360);
+          ctx.fillText("& " + titleWords[1], 400, 420);
+        } else {
+          ctx.fillText(item.title, 400, 390);
+        }
+
+        // Subtitle
+        ctx.fillStyle = "#475569";
+        ctx.font = "30px sans-serif";
+        ctx.fillText(item.sub, 400, 510);
+
+        // 5. Lateral Carousel Arrows (< and >)
+        ctx.fillStyle = "#ffffff";
+        roundRect(ctx, 20, 430, 60, 90, 16, true, true);
+        roundRect(ctx, 720, 430, 60, 90, 16, true, true);
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 42px sans-serif";
+        ctx.fillText("‹", 50, 490);
+        ctx.fillText("›", 750, 490);
+
+        // 6. Bottom Registration Box
+        ctx.fillStyle = "#ffffff";
+        roundRect(ctx, 90, 910, 380, 95, 20, true, true);
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 32px sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(item.registered + " 📄", 120, 970);
+
+        // 7. Bottom Right Action Link
+        ctx.fillStyle = "#f97316";
+        roundRect(ctx, 490, 910, 220, 95, 20, true, true);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 30px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Register ↗", 600, 970);
+
+        // 8. Push texture directly to A-Frame Plane
+        const plane = document.getElementById('ar-board');
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.minFilter = THREE.LinearFilter;
+        const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+        plane.getObject3D('mesh').material = material;
+        
+        // Sync Screen Link
         document.getElementById('ui-reg-btn').setAttribute('href', item.regUrl);
+      }
+
+      function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+        if (fill) ctx.fill();
+        if (stroke) ctx.stroke();
       }
 
       function nextNotice() {
         currentIndex = (currentIndex + 1) % notices.length;
-        updateBoard();
+        drawPosterToCanvas();
       }
 
       function prevNotice() {
         currentIndex = (currentIndex - 1 + notices.length) % notices.length;
-        updateBoard();
+        drawPosterToCanvas();
       }
 
-      window.onload = updateBoard;
+      // Initial Render once AR Scene is Ready
+      window.addEventListener('load', () => {
+        setTimeout(drawPosterToCanvas, 600);
+      });
     </script>
   </body>
 </html>
