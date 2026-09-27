@@ -73,9 +73,10 @@
           </div>
         </div>
 
+        <!-- Direct Image File Upload -->
         <div class="form-group">
-          <label>Poster Image URL (Optional - direct link to PNG/JPG image)</label>
-          <input type="url" id="image_url" placeholder="https://example.com/poster.jpg">
+          <label>Upload Event Poster Image (PNG / JPG / JPEG)</label>
+          <input type="file" id="posterFile" accept="image/*">
         </div>
 
         <div class="grid-2">
@@ -84,7 +85,7 @@
             <input type="number" id="registered_count" placeholder="0" value="0">
           </div>
           <div class="form-group">
-            <label>Color Theme (If no image provided)</label>
+            <label>Color Theme (For Background Frame)</label>
             <select id="colorTheme">
               <option value="#dcfce7|#15803d">Green (Events / Workshops)</option>
               <option value="#e0f2fe|#0284c7">Blue (Exams / Schedules)</option>
@@ -111,11 +112,12 @@
             <th>Title</th>
             <th>Calculated Countdown</th>
             <th>Registered</th>
+            <th>Image</th>
             <th>Action</th>
           </tr>
         </thead>
         <tbody id="noticeTableBody">
-          <tr><td colspan="5" style="text-align: center; color: #94a3b8;">Loading cloud data...</td></tr>
+          <tr><td colspan="6" style="text-align: center; color: #94a3b8;">Loading cloud data...</td></tr>
         </tbody>
       </table>
     </div>
@@ -148,7 +150,7 @@
         const response = await fetch(`${SUPABASE_BASE_URL}/rest/v1/notices?select=*&order=id.desc`, { headers });
         const data = await response.json();
         if (!data || data.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No notices found.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No notices found.</td></tr>`;
           return;
         }
         tbody.innerHTML = data.map(item => `
@@ -157,47 +159,75 @@
             <td>${item.title1} ${item.title2}</td>
             <td>${formatDaysHours(item.countdown)}</td>
             <td>${item.registered_count}</td>
+            <td>${item.image_url ? '✓ Attached' : '—'}</td>
             <td><button class="btn-delete" onclick="deleteNotice(${item.id})">Delete</button></td>
           </tr>
         `).join('');
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="5" style="color:red;">Error: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="color:red;">Error: ${err.message}</td></tr>`;
       }
+    }
+
+    async function uploadPosterImage(file) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      
+      const uploadRes = await fetch(`${SUPABASE_BASE_URL}/storage/v1/object/posters/${fileName}`, {
+        method: 'POST',
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": "Bearer " + SUPABASE_KEY,
+          "Content-Type": file.type
+        },
+        body: file
+      });
+
+      if (!uploadRes.ok) throw new Error("Image upload failed");
+      return `${SUPABASE_BASE_URL}/storage/v1/object/public/posters/${fileName}`;
     }
 
     async function handleCreateNotice(e) {
       e.preventDefault();
       const btn = document.getElementById('submitBtn');
-      btn.innerText = "Publishing...";
+      btn.innerText = "Uploading & Publishing...";
       btn.disabled = true;
 
-      const [bg, headerColor] = document.getElementById('colorTheme').value.split('|');
-      const isoDate = new Date(document.getElementById('expiryDate').value).toISOString();
-
-      const newNotice = {
-        dept: document.getElementById('dept').value.trim(),
-        inst: document.getElementById('inst').value.trim(),
-        title1: document.getElementById('title1').value.trim(),
-        title2: document.getElementById('title2').value.trim(),
-        sub: document.getElementById('sub').value.trim(),
-        countdown: isoDate,
-        registered_count: parseInt(document.getElementById('registered_count').value) || 0,
-        bg: bg,
-        header_color: headerColor,
-        image_url: document.getElementById('image_url').value.trim(),
-        reg_url: document.getElementById('reg_url').value.trim()
-      };
-
       try {
+        const [bg, headerColor] = document.getElementById('colorTheme').value.split('|');
+        const isoDate = new Date(document.getElementById('expiryDate').value).toISOString();
+        
+        // Handle file upload if present
+        let imageUrl = '';
+        const fileInput = document.getElementById('posterFile');
+        if (fileInput.files.length > 0) {
+          imageUrl = await uploadPosterImage(fileInput.files[0]);
+        }
+
+        const newNotice = {
+          dept: document.getElementById('dept').value.trim(),
+          inst: document.getElementById('inst').value.trim(),
+          title1: document.getElementById('title1').value.trim(),
+          title2: document.getElementById('title2').value.trim(),
+          sub: document.getElementById('sub').value.trim(),
+          countdown: isoDate,
+          registered_count: parseInt(document.getElementById('registered_count').value) || 0,
+          bg: bg,
+          header_color: headerColor,
+          image_url: imageUrl,
+          reg_url: document.getElementById('reg_url').value.trim()
+        };
+
         const res = await fetch(`${SUPABASE_BASE_URL}/rest/v1/notices`, {
           method: 'POST',
           headers: { ...headers, "Prefer": "return=minimal" },
           body: JSON.stringify(newNotice)
         });
+        
         if (!res.ok) throw new Error(await res.text());
+        
         document.getElementById('noticeForm').reset();
         await fetchNotices();
-        alert("✓ Published to Live AR Board!");
+        alert("✓ Published to Live AR Board with Image!");
       } catch (err) {
         alert("Error: " + err.message);
       } finally {
