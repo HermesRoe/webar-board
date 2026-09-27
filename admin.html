@@ -68,9 +68,14 @@
             <input type="text" id="sub" placeholder="e.g. Hands-on Generative AI" required>
           </div>
           <div class="form-group">
-            <label>Event Expiry Date & Time (Auto Countdown)</label>
+            <label>Event Expiry Date & Time</label>
             <input type="datetime-local" id="expiryDate" required>
           </div>
+        </div>
+
+        <div class="form-group">
+          <label>Poster Image URL (Optional - direct link to PNG/JPG image)</label>
+          <input type="url" id="image_url" placeholder="https://example.com/poster.jpg">
         </div>
 
         <div class="grid-2">
@@ -79,7 +84,7 @@
             <input type="number" id="registered_count" placeholder="0" value="0">
           </div>
           <div class="form-group">
-            <label>Color Theme</label>
+            <label>Color Theme (If no image provided)</label>
             <select id="colorTheme">
               <option value="#dcfce7|#15803d">Green (Events / Workshops)</option>
               <option value="#e0f2fe|#0284c7">Blue (Exams / Schedules)</option>
@@ -129,7 +134,7 @@
     function formatDaysHours(countdownString) {
       if (!countdownString) return "Active";
       const target = new Date(countdownString).getTime();
-      if (isNaN(target)) return countdownString; // Fallback if raw text
+      if (isNaN(target)) return countdownString;
       const diff = target - Date.now();
       if (diff <= 0) return "Expired";
       const d = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -179,6 +184,7 @@
         registered_count: parseInt(document.getElementById('registered_count').value) || 0,
         bg: bg,
         header_color: headerColor,
+        image_url: document.getElementById('image_url').value.trim(),
         reg_url: document.getElementById('reg_url').value.trim()
       };
 
