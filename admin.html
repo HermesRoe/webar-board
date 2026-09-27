@@ -11,19 +11,15 @@
     header { margin-bottom: 24px; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
     h1 { font-size: 24px; color: #0f172a; }
     .badge { background: #dcfce7; color: #15803d; padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: 600; }
-    
     .card { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 24px; }
     h2 { font-size: 18px; margin-bottom: 16px; color: #1e293b; }
-    
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .form-group { margin-bottom: 14px; }
     label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #475569; }
     input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; }
     input:focus, select:focus { border-color: #3b82f6; }
-    
     .btn-submit { background: #15803d; color: #ffffff; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 14px; width: 100%; }
     .btn-submit:hover { background: #166534; }
-
     table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
     th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
     th { background: #f1f5f9; color: #475569; font-weight: 600; }
@@ -41,7 +37,6 @@
       <span class="badge">● Cloud DB Connected</span>
     </header>
 
-    <!-- New Notice Form -->
     <div class="card">
       <h2>Create New AR Notice</h2>
       <form id="noticeForm" onsubmit="handleCreateNotice(event)">
@@ -51,7 +46,7 @@
             <input type="text" id="dept" placeholder="e.g. CSE, ECE, EXAM" required>
           </div>
           <div class="form-group">
-            <label>Institution / Banner Header</label>
+            <label>Institution / Header</label>
             <input type="text" id="inst" placeholder="e.g. SATHYABAMA" required>
           </div>
         </div>
@@ -73,15 +68,15 @@
             <input type="text" id="sub" placeholder="e.g. Hands-on Generative AI" required>
           </div>
           <div class="form-group">
-            <label>Countdown Badge Text</label>
-            <input type="text" id="countdown" placeholder="e.g. Ends in: 03d 08h" required>
+            <label>Event Expiry Date & Time (Auto Countdown)</label>
+            <input type="datetime-local" id="expiryDate" required>
           </div>
         </div>
 
         <div class="grid-2">
           <div class="form-group">
             <label>Initial Registered Count</label>
-            <input type="number" id="registered_count" placeholder="e.g. 85" value="0">
+            <input type="number" id="registered_count" placeholder="0" value="0">
           </div>
           <div class="form-group">
             <label>Color Theme</label>
@@ -102,7 +97,6 @@
       </form>
     </div>
 
-    <!-- Active Database Notices -->
     <div class="card">
       <h2>Active AR Notices in Cloud Database</h2>
       <table>
@@ -110,7 +104,7 @@
           <tr>
             <th>Dept</th>
             <th>Title</th>
-            <th>Countdown</th>
+            <th>Calculated Countdown</th>
             <th>Registered</th>
             <th>Action</th>
           </tr>
@@ -132,51 +126,48 @@
       "Content-Type": "application/json"
     };
 
+    function formatDaysHours(countdownString) {
+      if (!countdownString) return "Active";
+      const target = new Date(countdownString).getTime();
+      if (isNaN(target)) return countdownString; // Fallback if raw text
+      const diff = target - Date.now();
+      if (diff <= 0) return "Expired";
+      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      return `Ends in: ${String(d).padStart(2, '0')}d ${String(h).padStart(2, '0')}h`;
+    }
+
     async function fetchNotices() {
       const tbody = document.getElementById('noticeTableBody');
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #64748b;">Connecting to Supabase...</td></tr>`;
-
       try {
-        const response = await fetch(`${SUPABASE_BASE_URL}/rest/v1/notices?select=*&order=id.desc`, {
-          method: 'GET',
-          headers: headers
-        });
-
-        if (!response.ok) {
-          const errText = await response.text();
-          throw new Error(`HTTP ${response.status}: ${errText}`);
-        }
-
+        const response = await fetch(`${SUPABASE_BASE_URL}/rest/v1/notices?select=*&order=id.desc`, { headers });
         const data = await response.json();
-
         if (!data || data.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No notices found. Add one above.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No notices found.</td></tr>`;
           return;
         }
-
         tbody.innerHTML = data.map(item => `
           <tr>
             <td><strong>${item.dept}</strong></td>
             <td>${item.title1} ${item.title2}</td>
-            <td>${item.countdown}</td>
+            <td>${formatDaysHours(item.countdown)}</td>
             <td>${item.registered_count}</td>
             <td><button class="btn-delete" onclick="deleteNotice(${item.id})">Delete</button></td>
           </tr>
         `).join('');
-
       } catch (err) {
-        console.error("Fetch error:", err);
-        tbody.innerHTML = `<tr><td colspan="5" style="color: #dc2626; font-weight: bold; background: #fee2e2; padding: 12px;">Failed to load: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="color:red;">Error: ${err.message}</td></tr>`;
       }
     }
 
     async function handleCreateNotice(e) {
       e.preventDefault();
       const btn = document.getElementById('submitBtn');
-      btn.innerText = "Publishing to AR Board...";
+      btn.innerText = "Publishing...";
       btn.disabled = true;
 
       const [bg, headerColor] = document.getElementById('colorTheme').value.split('|');
+      const isoDate = new Date(document.getElementById('expiryDate').value).toISOString();
 
       const newNotice = {
         dept: document.getElementById('dept').value.trim(),
@@ -184,7 +175,7 @@
         title1: document.getElementById('title1').value.trim(),
         title2: document.getElementById('title2').value.trim(),
         sub: document.getElementById('sub').value.trim(),
-        countdown: document.getElementById('countdown').value.trim(),
+        countdown: isoDate,
         registered_count: parseInt(document.getElementById('registered_count').value) || 0,
         bg: bg,
         header_color: headerColor,
@@ -192,22 +183,17 @@
       };
 
       try {
-        const response = await fetch(`${SUPABASE_BASE_URL}/rest/v1/notices`, {
+        const res = await fetch(`${SUPABASE_BASE_URL}/rest/v1/notices`, {
           method: 'POST',
           headers: { ...headers, "Prefer": "return=minimal" },
           body: JSON.stringify(newNotice)
         });
-
-        if (!response.ok) {
-          const errText = await response.text();
-          throw new Error(errText);
-        }
-
+        if (!res.ok) throw new Error(await res.text());
         document.getElementById('noticeForm').reset();
         await fetchNotices();
-        alert("✓ Notice published! It is now live in the AR view.");
+        alert("✓ Published to Live AR Board!");
       } catch (err) {
-        alert("Error adding notice: " + err.message);
+        alert("Error: " + err.message);
       } finally {
         btn.innerText = "Publish Notice to Live AR Board";
         btn.disabled = false;
@@ -215,17 +201,9 @@
     }
 
     async function deleteNotice(id) {
-      if (!confirm("Remove this notice from the live AR display?")) return;
-      try {
-        const response = await fetch(`${SUPABASE_BASE_URL}/rest/v1/notices?id=eq.${id}`, {
-          method: 'DELETE',
-          headers: headers
-        });
-        if (!response.ok) throw new Error(await response.text());
-        await fetchNotices();
-      } catch (err) {
-        alert("Error deleting: " + err.message);
-      }
+      if (!confirm("Remove this notice?")) return;
+      await fetch(`${SUPABASE_BASE_URL}/rest/v1/notices?id=eq.${id}`, { method: 'DELETE', headers });
+      fetchNotices();
     }
 
     window.onload = fetchNotices;
