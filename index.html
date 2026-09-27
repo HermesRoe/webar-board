@@ -8,16 +8,15 @@
     <style>
       body { margin: 0; overflow: hidden; font-family: -apple-system, sans-serif; }
       
-      /* Tracking & Detach Bar */
+      /* Top Bar */
       #top-bar {
         position: fixed;
         top: 16px;
-        left: 0;
-        right: 0;
+        left: 0; right: 0;
         display: flex;
         justify-content: center;
         gap: 12px;
-        z-index: 999999;
+        z-index: 10000;
         pointer-events: none;
       }
       .badge {
@@ -34,7 +33,7 @@
         background: #0284c7;
         color: #ffffff;
         border: none;
-        padding: 8px 14px;
+        padding: 8px 16px;
         border-radius: 20px;
         font-size: 13px;
         font-weight: 700;
@@ -44,7 +43,7 @@
         pointer-events: auto;
       }
 
-      /* Native Touch Controls */
+      /* Native Screen Controls */
       .touch-controls {
         position: fixed;
         bottom: 24px;
@@ -53,7 +52,7 @@
         justify-content: space-between;
         align-items: center;
         padding: 0 24px;
-        z-index: 999999;
+        z-index: 10000;
         pointer-events: none;
       }
       .btn-arrow {
@@ -80,16 +79,92 @@
         text-decoration: none;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       }
+
+      /* Dedicated Pocket Mode 2D Modal */
+      #pocket-view {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(15, 23, 42, 0.92);
+        z-index: 9999;
+        padding: 60px 20px 90px 20px;
+        overflow-y: auto;
+        box-sizing: border-box;
+      }
+      .pocket-card {
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 24px;
+        max-width: 440px;
+        margin: 0 auto;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      }
+      .pocket-badge {
+        display: inline-block;
+        background: #0f172a;
+        color: #38bdf8;
+        font-size: 12px;
+        font-weight: bold;
+        padding: 4px 12px;
+        border-radius: 12px;
+        margin-bottom: 12px;
+      }
+      .pocket-dept {
+        float: right;
+        font-weight: bold;
+        font-size: 13px;
+        color: #64748b;
+      }
+      .pocket-title {
+        font-size: 22px;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 8px;
+      }
+      .pocket-sub {
+        font-size: 14px;
+        color: #475569;
+        margin-bottom: 16px;
+      }
+      .pocket-img {
+        width: 100%;
+        border-radius: 12px;
+        margin-bottom: 16px;
+        max-height: 240px;
+        object-fit: cover;
+      }
+      .pocket-metric {
+        font-size: 13px;
+        color: #0f172a;
+        font-weight: 600;
+        margin-bottom: 16px;
+      }
     </style>
   </head>
   <body>
     <div id="top-bar">
       <div id="status-pill" class="badge">Aim at Hiro Marker</div>
-      <button id="detach-btn" class="btn-detach" onclick="toggleDetach()">📌 Pocket Mode</button>
+      <button id="detach-btn" class="btn-detach" onclick="togglePocketMode()">📌 Pocket Mode</button>
     </div>
 
+    <!-- Hidden Rendering Canvas -->
     <canvas id="posterCanvas" width="700" height="920" style="display:none;"></canvas>
 
+    <!-- Pocket Mode 2D View -->
+    <div id="pocket-view">
+      <div class="pocket-card">
+        <div>
+          <span id="pk-countdown" class="pocket-badge">Ends in: 00d 00h</span>
+          <span id="pk-dept" class="pocket-dept">CSE</span>
+        </div>
+        <h2 id="pk-title" class="pocket-title">Event Title</h2>
+        <p id="pk-sub" class="pocket-sub">Event Subtitle</p>
+        <img id="pk-img" class="pocket-img" style="display:none;" src="" alt="Notice banner">
+        <div id="pk-metric" class="pocket-metric">142 Registered 📄</div>
+      </div>
+    </div>
+
+    <!-- Active Touch Bar -->
     <div class="touch-controls">
       <button class="btn-arrow" onclick="prevNotice()">❮</button>
       <a id="ui-reg-btn" class="btn-reg" href="https://forms.google.com" target="_blank">Register Here ↗</a>
@@ -102,7 +177,6 @@
       vr-mode-ui="enabled: false" 
       arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono; patternRatio: 0.5;">
       
-      <!-- Spatial Marker Container -->
       <a-marker id="hiro-marker" preset="hiro" smooth="true" smoothCount="5">
         <a-plane 
           id="ar-board" 
@@ -114,7 +188,7 @@
         </a-plane>
       </a-marker>
       
-      <a-entity id="main-camera" camera></a-entity>
+      <a-entity camera></a-entity>
     </a-scene>
 
     <script>
@@ -123,7 +197,7 @@
 
       let notices = [];
       let currentIndex = 0;
-      let isDetached = false;
+      let inPocketMode = false;
 
       function formatCountdown(countdownString) {
         if (!countdownString) return "Ends in: 00d 00h";
@@ -155,13 +229,29 @@
         const canvas = document.getElementById('posterCanvas');
         const ctx = canvas.getContext('2d');
 
+        // Sync with Pocket Mode Modal
+        document.getElementById('pk-countdown').innerText = formatCountdown(item.countdown);
+        document.getElementById('pk-dept').innerText = item.dept;
+        document.getElementById('pk-title').innerText = `${item.title1} ${item.title2}`;
+        document.getElementById('pk-sub').innerText = item.sub;
+        document.getElementById('pk-metric').innerText = `${item.registered_count} Registered 📄`;
+        
+        const pkImg = document.getElementById('pk-img');
+        if (item.image_url) {
+          pkImg.src = item.image_url;
+          pkImg.style.display = 'block';
+        } else {
+          pkImg.style.display = 'none';
+        }
+
+        // Render Canvas Frame
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.lineWidth = 10;
         ctx.strokeStyle = "#0f172a";
         ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
 
-        // Top Countdown Pill (Days & Hours Only)
+        // Top Floating Countdown
         ctx.fillStyle = "#0f172a";
         roundRect(ctx, 110, 25, 400, 70, 35, true);
         ctx.fillStyle = "#38bdf8";
@@ -169,7 +259,7 @@
         ctx.textAlign = "center";
         ctx.fillText(formatCountdown(item.countdown), 310, 69);
 
-        // Dept Badge
+        // Dept Circle Badge
         ctx.fillStyle = "#ffffff";
         ctx.lineWidth = 6;
         ctx.strokeStyle = "#0f172a";
@@ -181,18 +271,47 @@
         ctx.font = "bold 24px sans-serif";
         ctx.fillText(item.dept, 610, 68);
 
-        // Poster Body
+        // Main Poster Body
         ctx.fillStyle = item.bg || "#dcfce7";
         roundRect(ctx, 40, 120, 620, 640, 24, true);
 
-        // Header Banner
+        // Render Uploaded Image if available, otherwise draw formatted typography
+        if (item.image_url) {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => {
+            ctx.drawImage(img, 60, 140, 580, 600);
+            finalizeTexture(canvas);
+          };
+          img.onerror = () => {
+            renderTypography(ctx, item);
+            finalizeTexture(canvas);
+          };
+          img.src = item.image_url;
+        } else {
+          renderTypography(ctx, item);
+          finalizeTexture(canvas);
+        }
+
+        // Bottom Registration Info
+        ctx.fillStyle = "#ffffff";
+        roundRect(ctx, 40, 785, 620, 90, 18, true);
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 28px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(`${item.registered_count} Registered 📄  (Tap Register Below)`, 350, 842);
+
+        document.getElementById('ui-reg-btn').setAttribute('href', item.reg_url || "https://forms.google.com");
+      }
+
+      function renderTypography(ctx, item) {
         ctx.fillStyle = "#ffffff";
         roundRect(ctx, 70, 150, 560, 90, 16, true);
         ctx.fillStyle = item.header_color || "#15803d";
         ctx.font = "bold 44px sans-serif";
+        ctx.textAlign = "center";
         ctx.fillText(item.inst, 350, 212);
 
-        // Event Titles
         ctx.fillStyle = "#0f172a";
         ctx.font = "bold 42px sans-serif";
         ctx.fillText(item.title1, 350, 335);
@@ -200,32 +319,9 @@
         ctx.fillStyle = "#475569";
         ctx.font = "26px sans-serif";
         ctx.fillText(item.sub, 350, 480);
+      }
 
-        // Carousel Indicators
-        ctx.fillStyle = "#ffffff";
-        roundRect(ctx, 50, 560, 70, 70, 15, true);
-        roundRect(ctx, 580, 560, 70, 70, 15, true);
-        ctx.fillStyle = "#0f172a";
-        ctx.font = "bold 36px sans-serif";
-        ctx.fillText("‹", 85, 608);
-        ctx.fillText("›", 615, 608);
-
-        // Registration Count & Button
-        ctx.fillStyle = "#ffffff";
-        roundRect(ctx, 40, 785, 360, 90, 18, true);
-        ctx.fillStyle = "#0f172a";
-        ctx.font = "bold 26px sans-serif";
-        ctx.textAlign = "left";
-        ctx.fillText(`${item.registered_count} Registered 📄`, 65, 842);
-
-        ctx.fillStyle = "#f97316";
-        roundRect(ctx, 420, 785, 240, 90, 18, true);
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 26px sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText("Register ↗", 540, 842);
-
-        // Push Canvas to WebGL Material
+      function finalizeTexture(canvas) {
         const board = document.getElementById('ar-board');
         if (board && board.getObject3D('mesh')) {
           const mesh = board.getObject3D('mesh');
@@ -235,8 +331,6 @@
           mesh.material.map = texture;
           mesh.material.needsUpdate = true;
         }
-
-        document.getElementById('ui-reg-btn').setAttribute('href', item.reg_url || "https://forms.google.com");
       }
 
       function roundRect(ctx, x, y, width, height, radius, fill) {
@@ -264,44 +358,33 @@
         drawPoster();
       }
 
-      // Hybrid Scan & Detach Logic
-      function toggleDetach() {
-        const board = document.getElementById('ar-board');
-        const camera = document.getElementById('main-camera');
-        const marker = document.getElementById('hiro-marker');
+      // Stable 2D Pocket Mode Toggle
+      function togglePocketMode() {
+        const pocketView = document.getElementById('pocket-view');
         const detachBtn = document.getElementById('detach-btn');
         const status = document.getElementById('status-pill');
 
-        if (!isDetached) {
-          // Detach: Anchor to camera viewport in pocket mode
-          camera.appendChild(board);
-          board.setAttribute('position', '0 0 -2.4');
-          board.setAttribute('rotation', '0 0 0');
-          board.setAttribute('scale', '0.75 0.75 0.75');
-          isDetached = true;
-          detachBtn.innerText = "🌐 Re-Anchor Marker";
+        if (!inPocketMode) {
+          pocketView.style.display = 'block';
+          detachBtn.innerText = "🌐 Return to AR";
           status.innerText = "📌 Pocket Mode Active";
           status.style.background = "#0284c7";
+          inPocketMode = true;
         } else {
-          // Re-anchor: Return to spatial tracking
-          marker.appendChild(board);
-          board.setAttribute('position', '0 0.1 0');
-          board.setAttribute('rotation', '-90 0 0');
-          board.setAttribute('scale', '1 1 1');
-          isDetached = false;
+          pocketView.style.display = 'none';
           detachBtn.innerText = "📌 Pocket Mode";
           status.innerText = "✓ Notice Board Locked";
           status.style.background = "#15803d";
+          inPocketMode = false;
         }
       }
 
-      // Tracking Events
       const markerEl = document.getElementById('hiro-marker');
       const statusPill = document.getElementById('status-pill');
       const detachBtn = document.getElementById('detach-btn');
 
       markerEl.addEventListener('markerFound', () => {
-        if (!isDetached) {
+        if (!inPocketMode) {
           statusPill.innerText = "✓ Notice Board Locked";
           statusPill.style.background = "#15803d";
           detachBtn.style.display = "block";
@@ -310,7 +393,7 @@
       });
 
       markerEl.addEventListener('markerLost', () => {
-        if (!isDetached) {
+        if (!inPocketMode) {
           statusPill.innerText = "Aim at Hiro Marker";
           statusPill.style.background = "rgba(15, 23, 42, 0.85)";
           detachBtn.style.display = "none";
