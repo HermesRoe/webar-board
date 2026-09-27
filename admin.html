@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebAR Notice Board - Admin Portal</title>
+  <!-- Supabase CDN Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: #f8fafc; color: #0f172a; padding: 24px; }
+    .container { max-width: 900px; margin: 0 auto; }
+    header { margin-bottom: 24px; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    h1 { font-size: 24px; color: #0f172a; }
+    .badge { background: #dcfce7; color: #15803d; padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: 600; }
+    
+    .card { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 24px; }
+    h2 { font-size: 18px; margin-bottom: 16px; color: #1e293b; }
+    
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #475569; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; }
+    input:focus, select:focus { border-color: #3b82f6; ring: 2px #93c5fd; }
+    
+    .btn-submit { background: #15803d; color: #ffffff; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 14px; width: 100%; }
+    .btn-submit:hover { background: #166534; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    th { background: #f1f5f9; color: #475569; font-weight: 600; }
+    .btn-delete { background: #ef4444; color: #fff; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
+    .btn-delete:hover { background: #dc2626; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Campus WebAR Portal</h1>
+        <p style="font-size: 13px; color: #64748b;">Notice Board Content Management System</p>
+      </div>
+      <span class="badge">● Cloud DB Connected</span>
+    </header>
+
+    <!-- New Notice Form -->
+    <div class="card">
+      <h2>Create New AR Notice</h2>
+      <form id="noticeForm" onsubmit="handleCreateNotice(event)">
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Department Code</label>
+            <input type="text" id="dept" placeholder="e.g. CSE, ECE, EXAM" required>
+          </div>
+          <div class="form-group">
+            <label>Institution / Banner Header</label>
+            <input type="text" id="inst" placeholder="e.g. SATHYABAMA" required>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Main Title (Line 1)</label>
+            <input type="text" id="title1" placeholder="e.g. AI SYMPOSIUM" required>
+          </div>
+          <div class="form-group">
+            <label>Title Subheading (Line 2)</label>
+            <input type="text" id="title2" placeholder="e.g. & WORKSHOP" required>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Subtitle / Details</label>
+            <input type="text" id="sub" placeholder="e.g. Hands-on Generative AI" required>
+          </div>
+          <div class="form-group">
+            <label>Countdown Badge Text</label>
+            <input type="text" id="countdown" placeholder="e.g. Ends in: 03d 08h" required>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Initial Registered Count</label>
+            <input type="number" id="registered_count" placeholder="e.g. 85" value="0">
+          </div>
+          <div class="form-group">
+            <label>Color Theme</label>
+            <select id="colorTheme">
+              <option value="#dcfce7|#15803d">Green (Events / Workshops)</option>
+              <option value="#e0f2fe|#0284c7">Blue (Exams / Schedules)</option>
+              <option value="#ffedd5|#ea580c">Orange (Urgent / Circulars)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Registration URL (Google Form / ERP link)</label>
+          <input type="url" id="reg_url" placeholder="https://forms.google.com" required>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">Publish Notice to Live AR Board</button>
+      </form>
+    </div>
+
+    <!-- Active Database Notices -->
+    <div class="card">
+      <h2>Active AR Notices in Cloud Database</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Dept</th>
+            <th>Title</th>
+            <th>Countdown</th>
+            <th>Registered</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="noticeTableBody">
+          <tr><td colspan="5" style="text-align: center; color: #94a3b8;">Loading cloud data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // INSERT YOUR KEYS HERE:
+    // -------------------------------------------------------------
+    const SUPABASE_URL = "https://otmonmzdsunhzgkjaqzm.supabase.co/rest/v1/";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bW9ubXpkc3VuaHpna2phcXptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MTMwNzksImV4cCI6MjEwNjA4OTA3OX0.uBraBVDqh3SjXLeEhiUoCpHp5l9nZFB9Gbmlb4vGfCc";
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function fetchNotices() {
+      const tbody = document.getElementById('noticeTableBody');
+      const { data, error } = await supabase
+        .from('notices')
+        .select('*')
+        .order('id', { ascending: false });
+
+      if (error) {
+        tbody.innerHTML = `<tr><td colspan="5" style="color:red;">Error: ${error.message}</td></tr>`;
+        return;
+      }
+
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No notices found. Add one above.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.map(item => `
+        <tr>
+          <td><strong>${item.dept}</strong></td>
+          <td>${item.title1} ${item.title2}</td>
+          <td>${item.countdown}</td>
+          <td>${item.registered_count}</td>
+          <td><button class="btn-delete" onclick="deleteNotice(${item.id})">Delete</button></td>
+        </tr>
+      `).join('');
+    }
+
+    async function handleCreateNotice(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.innerText = "Publishing to AR Board...";
+      btn.disabled = true;
+
+      const [bg, headerColor] = document.getElementById('colorTheme').value.split('|');
+
+      const newNotice = {
+        dept: document.getElementById('dept').value.trim(),
+        inst: document.getElementById('inst').value.trim(),
+        title1: document.getElementById('title1').value.trim(),
+        title2: document.getElementById('title2').value.trim(),
+        sub: document.getElementById('sub').value.trim(),
+        countdown: document.getElementById('countdown').value.trim(),
+        registered_count: parseInt(document.getElementById('registered_count').value) || 0,
+        bg: bg,
+        header_color: headerColor,
+        reg_url: document.getElementById('reg_url').value.trim()
+      };
+
+      const { error } = await supabase.from('notices').insert([newNotice]);
+
+      btn.innerText = "Publish Notice to Live AR Board";
+      btn.disabled = false;
+
+      if (error) {
+        alert("Error adding notice: " + error.message);
+      } else {
+        document.getElementById('noticeForm').reset();
+        fetchNotices();
+        alert("✓ Notice published! It is now live in the AR view.");
+      }
+    }
+
+    async function deleteNotice(id) {
+      if (!confirm("Remove this notice from the live AR display?")) return;
+      const { error } = await supabase.from('notices').delete().eq('id', id);
+      if (error) alert("Error deleting: " + error.message);
+      else fetchNotices();
+    }
+
+    window.onload = fetchNotices;
+  </script>
+</body>
+</html>
