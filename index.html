@@ -3,28 +3,45 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WebAR Notice Board</title>
-    <!-- Stable Core Engines -->
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/3.3.1/aframe/build/aframe-ar.js"></script>
     <style>
       body { margin: 0; overflow: hidden; font-family: -apple-system, sans-serif; }
       
-      /* Tracking Status Indicator */
-      #status-pill {
+      /* Tracking & Detach Bar */
+      #top-bar {
         position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
+        top: 16px;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        z-index: 999999;
+        pointer-events: none;
+      }
+      .badge {
         background: rgba(15, 23, 42, 0.85);
         color: #f8fafc;
-        padding: 8px 18px;
+        padding: 8px 16px;
         border-radius: 20px;
         font-size: 13px;
         font-weight: 600;
-        z-index: 999999;
-        pointer-events: none;
         border: 1px solid #475569;
-        transition: all 0.2s ease;
+        pointer-events: auto;
+      }
+      .btn-detach {
+        background: #0284c7;
+        color: #ffffff;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        display: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        pointer-events: auto;
       }
 
       /* Native Touch Controls */
@@ -66,28 +83,27 @@
     </style>
   </head>
   <body>
-    <!-- Real-time Status Badge -->
-    <div id="status-pill">Point camera at Hiro Marker</div>
+    <div id="top-bar">
+      <div id="status-pill" class="badge">Aim at Hiro Marker</div>
+      <button id="detach-btn" class="btn-detach" onclick="toggleDetach()">📌 Pocket Mode</button>
+    </div>
 
-    <!-- Hidden Rendering Canvas -->
     <canvas id="posterCanvas" width="700" height="920" style="display:none;"></canvas>
 
-    <!-- UI Overlay -->
     <div class="touch-controls">
       <button class="btn-arrow" onclick="prevNotice()">❮</button>
       <a id="ui-reg-btn" class="btn-reg" href="https://forms.google.com" target="_blank">Register Here ↗</a>
       <button class="btn-arrow" onclick="nextNotice()">❯</button>
     </div>
 
-    <!-- AR Scene: Optimized for High Stability -->
     <a-scene 
       id="ar-scene"
       embedded 
       vr-mode-ui="enabled: false" 
       arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono; patternRatio: 0.5;">
       
-      <!-- Marker Listener -->
-      <a-marker id="hiro-marker" preset="hiro" smooth="true" smoothCount="5" smoothTolerance="0.01">
+      <!-- Spatial Marker Container -->
+      <a-marker id="hiro-marker" preset="hiro" smooth="true" smoothCount="5">
         <a-plane 
           id="ar-board" 
           position="0 0.1 0" 
@@ -98,71 +114,60 @@
         </a-plane>
       </a-marker>
       
-      <a-entity camera></a-entity>
+      <a-entity id="main-camera" camera></a-entity>
     </a-scene>
 
     <script>
-      const notices = [
-        {
-          dept: "CSE",
-          inst: "SATHYABAMA",
-          title1: "HACKATHON",
-          title2: "& TECH EVENT",
-          sub: "Theme: WebAR & Spatial UI",
-          countdown: "Ends in: 02d 14h 30m",
-          registered: "142 Registered",
-          bg: "#dcfce7",
-          headerColor: "#15803d",
-          regUrl: "https://forms.google.com"
-        },
-        {
-          dept: "EXAM",
-          inst: "UNIVERSITY",
-          title1: "SEMESTER EXAM",
-          title2: "SCHEDULE",
-          sub: "Hall Tickets Active on ERP",
-          countdown: "Starts in: 12d 06h",
-          registered: "Circulated: All Years",
-          bg: "#e0f2fe",
-          headerColor: "#0284c7",
-          regUrl: "https://sathyabama.ac.in"
-        },
-        {
-          dept: "MECH",
-          inst: "WORKSHOP",
-          title1: "ROBOTICS &",
-          title2: "DRONE FLIGHT",
-          sub: "Hands-on Flight Dynamics",
-          countdown: "Ends in: 05d 10h",
-          registered: "68 Registered",
-          bg: "#ffedd5",
-          headerColor: "#ea580c",
-          regUrl: "https://forms.google.com"
-        }
-      ];
+      const SUPABASE_BASE_URL = "https://otmonmzdsunhzgkjaqzm.supabase.co";
+      const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bW9ubXpkc3VuaHpna2phcXptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MTMwNzksImV4cCI6MjEwNjA4OTA3OX0.uBraBVDqh3SjXLeEhiUoCpHp5l9nZFB9Gbmlb4vGfCc";
 
+      let notices = [];
       let currentIndex = 0;
-      let sceneReady = false;
+      let isDetached = false;
+
+      function formatCountdown(countdownString) {
+        if (!countdownString) return "Ends in: 00d 00h";
+        const target = new Date(countdownString).getTime();
+        if (isNaN(target)) return countdownString;
+        const diff = target - Date.now();
+        if (diff <= 0) return "Event Expired";
+        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        return `Ends in: ${String(d).padStart(2, '0')}d ${String(h).padStart(2, '0')}h`;
+      }
+
+      async function loadCloudNotices() {
+        try {
+          const res = await fetch(`${SUPABASE_BASE_URL}/rest/v1/notices?select=*&order=id.desc`, {
+            headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY }
+          });
+          const data = await res.json();
+          if (data && data.length > 0) notices = data;
+        } catch (e) {
+          console.warn("Using offline fallback:", e);
+        }
+        drawPoster();
+      }
 
       function drawPoster() {
+        if (!notices.length) return;
         const item = notices[currentIndex];
         const canvas = document.getElementById('posterCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Solid White Outer Base (Eliminates Blank White Board bug)
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.lineWidth = 10;
         ctx.strokeStyle = "#0f172a";
         ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
 
-        // Top Countdown Pill
+        // Top Countdown Pill (Days & Hours Only)
         ctx.fillStyle = "#0f172a";
         roundRect(ctx, 110, 25, 400, 70, 35, true);
         ctx.fillStyle = "#38bdf8";
         ctx.font = "bold 26px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText(item.countdown, 310, 69);
+        ctx.fillText(formatCountdown(item.countdown), 310, 69);
 
         // Dept Badge
         ctx.fillStyle = "#ffffff";
@@ -176,28 +181,27 @@
         ctx.font = "bold 24px sans-serif";
         ctx.fillText(item.dept, 610, 68);
 
-        // Main Poster Card
-        ctx.fillStyle = item.bg;
+        // Poster Body
+        ctx.fillStyle = item.bg || "#dcfce7";
         roundRect(ctx, 40, 120, 620, 640, 24, true);
 
-        // Header Title
+        // Header Banner
         ctx.fillStyle = "#ffffff";
         roundRect(ctx, 70, 150, 560, 90, 16, true);
-        ctx.fillStyle = item.headerColor;
+        ctx.fillStyle = item.header_color || "#15803d";
         ctx.font = "bold 44px sans-serif";
         ctx.fillText(item.inst, 350, 212);
 
-        // Body Titles
+        // Event Titles
         ctx.fillStyle = "#0f172a";
         ctx.font = "bold 42px sans-serif";
         ctx.fillText(item.title1, 350, 335);
         ctx.fillText(item.title2, 350, 395);
-
         ctx.fillStyle = "#475569";
         ctx.font = "26px sans-serif";
         ctx.fillText(item.sub, 350, 480);
 
-        // Navigation Arrows
+        // Carousel Indicators
         ctx.fillStyle = "#ffffff";
         roundRect(ctx, 50, 560, 70, 70, 15, true);
         roundRect(ctx, 580, 560, 70, 70, 15, true);
@@ -206,13 +210,13 @@
         ctx.fillText("‹", 85, 608);
         ctx.fillText("›", 615, 608);
 
-        // Bottom Banner
+        // Registration Count & Button
         ctx.fillStyle = "#ffffff";
         roundRect(ctx, 40, 785, 360, 90, 18, true);
         ctx.fillStyle = "#0f172a";
         ctx.font = "bold 26px sans-serif";
         ctx.textAlign = "left";
-        ctx.fillText(item.registered + " 📄", 65, 842);
+        ctx.fillText(`${item.registered_count} Registered 📄`, 65, 842);
 
         ctx.fillStyle = "#f97316";
         roundRect(ctx, 420, 785, 240, 90, 18, true);
@@ -221,10 +225,10 @@
         ctx.textAlign = "center";
         ctx.fillText("Register ↗", 540, 842);
 
-        // Push to WebGL texture safely
-        const plane = document.getElementById('ar-board');
-        if (plane && plane.getObject3D('mesh')) {
-          const mesh = plane.getObject3D('mesh');
+        // Push Canvas to WebGL Material
+        const board = document.getElementById('ar-board');
+        if (board && board.getObject3D('mesh')) {
+          const mesh = board.getObject3D('mesh');
           const texture = new THREE.CanvasTexture(canvas);
           texture.generateMipmaps = false;
           texture.minFilter = THREE.LinearFilter;
@@ -232,7 +236,7 @@
           mesh.material.needsUpdate = true;
         }
 
-        document.getElementById('ui-reg-btn').setAttribute('href', item.regUrl);
+        document.getElementById('ui-reg-btn').setAttribute('href', item.reg_url || "https://forms.google.com");
       }
 
       function roundRect(ctx, x, y, width, height, radius, fill) {
@@ -260,30 +264,62 @@
         drawPoster();
       }
 
-      // Marker Tracking Event Listeners
-      const marker = document.getElementById('hiro-marker');
-      const statusPill = document.getElementById('status-pill');
+      // Hybrid Scan & Detach Logic
+      function toggleDetach() {
+        const board = document.getElementById('ar-board');
+        const camera = document.getElementById('main-camera');
+        const marker = document.getElementById('hiro-marker');
+        const detachBtn = document.getElementById('detach-btn');
+        const status = document.getElementById('status-pill');
 
-      marker.addEventListener('markerFound', () => {
-        statusPill.innerText = "✓ Notice Board Locked";
-        statusPill.style.background = "#15803d";
-        drawPoster(); // Refresh texture when marker is acquired
-      });
-
-      marker.addEventListener('markerLost', () => {
-        statusPill.innerText = "Looking for Hiro Marker...";
-        statusPill.style.background = "rgba(15, 23, 42, 0.85)";
-      });
-
-      // Synchronize with A-Frame Scene Loading Loop
-      const scene = document.getElementById('ar-scene');
-      if (scene.hasLoaded) {
-        drawPoster();
-      } else {
-        scene.addEventListener('loaded', () => {
-          setTimeout(drawPoster, 300);
-        });
+        if (!isDetached) {
+          // Detach: Anchor to camera viewport in pocket mode
+          camera.appendChild(board);
+          board.setAttribute('position', '0 0 -2.4');
+          board.setAttribute('rotation', '0 0 0');
+          board.setAttribute('scale', '0.75 0.75 0.75');
+          isDetached = true;
+          detachBtn.innerText = "🌐 Re-Anchor Marker";
+          status.innerText = "📌 Pocket Mode Active";
+          status.style.background = "#0284c7";
+        } else {
+          // Re-anchor: Return to spatial tracking
+          marker.appendChild(board);
+          board.setAttribute('position', '0 0.1 0');
+          board.setAttribute('rotation', '-90 0 0');
+          board.setAttribute('scale', '1 1 1');
+          isDetached = false;
+          detachBtn.innerText = "📌 Pocket Mode";
+          status.innerText = "✓ Notice Board Locked";
+          status.style.background = "#15803d";
+        }
       }
+
+      // Tracking Events
+      const markerEl = document.getElementById('hiro-marker');
+      const statusPill = document.getElementById('status-pill');
+      const detachBtn = document.getElementById('detach-btn');
+
+      markerEl.addEventListener('markerFound', () => {
+        if (!isDetached) {
+          statusPill.innerText = "✓ Notice Board Locked";
+          statusPill.style.background = "#15803d";
+          detachBtn.style.display = "block";
+          drawPoster();
+        }
+      });
+
+      markerEl.addEventListener('markerLost', () => {
+        if (!isDetached) {
+          statusPill.innerText = "Aim at Hiro Marker";
+          statusPill.style.background = "rgba(15, 23, 42, 0.85)";
+          detachBtn.style.display = "none";
+        }
+      });
+
+      window.addEventListener('load', () => {
+        loadCloudNotices();
+      });
     </script>
   </body>
 </html>
