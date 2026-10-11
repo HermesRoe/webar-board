@@ -187,7 +187,7 @@
         <h2 id="pk-title" class="pocket-title">Event Title</h2>
         <p id="pk-sub" class="pocket-sub">Event Subtitle</p>
         <img id="pk-img" class="pocket-img" style="display:none;" src="" alt="Notice banner">
-        <div id="pk-metric" class="pocket-metric">142 Registered 📄</div>
+        <div id="pk-metric" class="pocket-metric">142 Interested 📄</div> <!-- Changed label to 'Interested' -->
       </div>
     </div>
 
@@ -261,7 +261,7 @@
         document.getElementById('pk-dept').innerText = item.dept;
         document.getElementById('pk-title').innerText = `${item.title1} ${item.title2}`;
         document.getElementById('pk-sub').innerText = item.sub;
-        document.getElementById('pk-metric').innerText = `${item.registered_count} Registered 📄`;
+        document.getElementById('pk-metric').innerText = `${item.registered_count} Interested 📄`; // Changed label to 'Interested'
         // Add these 2 lines inside drawPoster() right after syncing pk-dept:
         document.getElementById('pk-inst').innerText = item.inst;
         document.getElementById('pk-inst').style.color = item.header_color || "#15803d";
@@ -330,7 +330,7 @@
         ctx.fillStyle = "#0f172a";
         ctx.font = "bold 28px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText(`${item.registered_count} Registered 📄  (Tap Register Below)`, 350, 842);
+        ctx.fillText(`${item.registered_count} Interested 📄  (Tap Register Below)`, 350, 842); // Changed label to 'Interested'
 
         document.getElementById('ui-reg-btn').setAttribute('href', item.reg_url || "https://forms.google.com");
       }
