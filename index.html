@@ -53,10 +53,10 @@
         align-items: center;
         padding: 0 24px;
         z-index: 10000;
-        pointer-events: none;
+        pointer-events: none; /* Let clicks pass through empty space */
       }
       .btn-arrow {
-        pointer-events: auto;
+        pointer-events: auto; /* Make sure buttons are clickable */
         background: #ffffff;
         color: #0f172a;
         border: 2px solid #0f172a;
@@ -66,9 +66,10 @@
         font-size: 26px;
         font-weight: 800;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        cursor: pointer;
       }
       .btn-reg {
-        pointer-events: auto;
+        pointer-events: auto; /* Make sure button is clickable */
         background: #f97316;
         color: #ffffff;
         border: 2px solid #0f172a;
@@ -78,10 +79,10 @@
         font-weight: bold;
         text-decoration: none;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        cursor: pointer;
       }
 
       /* Dedicated Pocket Mode 2D Modal */
-      /* Pocket Mode Exactly Styled Like the AR Board */
       #pocket-view {
         display: none;
         position: fixed;
@@ -187,14 +188,14 @@
         <h2 id="pk-title" class="pocket-title">Event Title</h2>
         <p id="pk-sub" class="pocket-sub">Event Subtitle</p>
         <img id="pk-img" class="pocket-img" style="display:none;" src="" alt="Notice banner">
-        <div id="pk-metric" class="pocket-metric">142 Interested 📄</div> <!-- Changed label to 'Interested' -->
+        <div id="pk-metric" class="pocket-metric">142 Interested 📄</div> 
       </div>
     </div>
 
     <!-- Active Touch Bar -->
     <div class="touch-controls">
       <button class="btn-arrow" onclick="prevNotice()">❮</button>
-      <a id="ui-reg-btn" class="btn-reg" href="#" target="_blank" onclick="handleRegisterClick(event)">Register Here ↗</a>
+      <button id="ui-reg-btn" class="btn-reg" onclick="handleRegisterClick(event)">Register Here ↗</button>
       <button class="btn-arrow" onclick="nextNotice()">❯</button>
     </div>
 
@@ -237,43 +238,6 @@
         return `Ends in: ${String(d).padStart(2, '0')}d ${String(h).padStart(2, '0')}h`;
       }
 
-      async function handleRegisterClick(event) {
-  event.preventDefault(); // Stop the browser from immediately jumping to the link
-  
-  if (!notices.length) return;
-  const item = notices[currentIndex];
-  
-  // 1. Instantly update the UI so it feels responsive
-  const newCount = (item.registered_count || 0) + 1;
-  item.registered_count = newCount;
-  
-  document.getElementById('pk-metric').innerText = `${newCount} Interested 📄`;
-  drawPoster(); // Redraws the AR canvas
-
-  // 2. Open the Google form in a new tab immediately
-  window.open(item.reg_url || "https://forms.google.com", "_blank");
-
-  // 3. Silently update Supabase in the background
-  try {
-    const response = await fetch(`${SUPABASE_BASE_URL}/rest/v1/notices?id=eq.${item.id}`, {
-      method: 'PATCH',
-      headers: { 
-        "apikey": SUPABASE_KEY, 
-        "Authorization": "Bearer " + SUPABASE_KEY,
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal"
-      },
-      body: JSON.stringify({ registered_count: newCount })
-    });
-    
-    if (!response.ok) {
-      console.error("Supabase blocked the update. Check your RLS policies!");
-    }
-  } catch (err) {
-    console.error("Network error updating count:", err);
-  }
-}
-
       async function loadCloudNotices() {
         try {
           const res = await fetch(`${SUPABASE_BASE_URL}/rest/v1/notices?select=*&order=id.desc`, {
@@ -285,36 +249,6 @@
           console.warn("Using offline fallback:", e);
         }
         drawPoster();
-      }
-      async function incrementInterestedCount() {
-        if (!notices.length) return;
-        
-        // Get the current notice being viewed
-        const item = notices[currentIndex];
-        
-        // Add +1 to the count
-        const newCount = (item.registered_count || 0) + 1;
-        
-        // 1. Optimistic UI Update: Change it on the screen instantly so the user sees it
-        item.registered_count = newCount;
-        document.getElementById('pk-metric').innerText = `${newCount} Interested 📄`;
-        drawPoster(); // Redraw the AR canvas with the new number
-
-        // 2. Database Update: Send the new count to Supabase
-        try {
-          await fetch(`${SUPABASE_BASE_URL}/rest/v1/notices?id=eq.${item.id}`, {
-            method: 'PATCH',
-            headers: { 
-              "apikey": SUPABASE_KEY, 
-              "Authorization": "Bearer " + SUPABASE_KEY,
-              "Content-Type": "application/json",
-              "Prefer": "return=minimal"
-            },
-            body: JSON.stringify({ registered_count: newCount })
-          });
-        } catch (err) {
-          console.error("Failed to update interested count in database:", err);
-        }
       }
 
       function drawPoster() {
@@ -328,8 +262,8 @@
         document.getElementById('pk-dept').innerText = item.dept;
         document.getElementById('pk-title').innerText = `${item.title1} ${item.title2}`;
         document.getElementById('pk-sub').innerText = item.sub;
-        document.getElementById('pk-metric').innerText = `${item.registered_count} Interested 📄`; // Changed label to 'Interested'
-        // Add these 2 lines inside drawPoster() right after syncing pk-dept:
+        document.getElementById('pk-metric').innerText = `${item.registered_count} Interested 📄`; 
+        
         document.getElementById('pk-inst').innerText = item.inst;
         document.getElementById('pk-inst').style.color = item.header_color || "#15803d";
         document.getElementById('pk-card').style.background = item.bg || "#ffffff";
@@ -397,9 +331,7 @@
         ctx.fillStyle = "#0f172a";
         ctx.font = "bold 28px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText(`${item.registered_count} Interested 📄  (Tap Register Below)`, 350, 842); // Changed label to 'Interested'
-
-        document.getElementById('ui-reg-btn').setAttribute('href', item.reg_url || "https://forms.google.com");
+        ctx.fillText(`${item.registered_count} Interested 📄  (Tap Register Below)`, 350, 842); 
       }
 
       function renderTypography(ctx, item) {
@@ -475,6 +407,49 @@
           status.style.background = "#15803d";
           inPocketMode = false;
         }
+      }
+      
+      // Async function to handle clicks, UI updates, and backend patching
+      async function handleRegisterClick(event) {
+        event.preventDefault(); // Stop default behavior
+        
+        if (!notices.length) return;
+        const item = notices[currentIndex];
+        
+        // 1. Instantly update the UI so it feels responsive
+        const newCount = (item.registered_count || 0) + 1;
+        item.registered_count = newCount; // Update local state
+        
+        // Update the Pocket Mode UI
+        document.getElementById('pk-metric').innerText = `${newCount} Interested 📄`;
+        
+        // Update the AR Canvas
+        drawPoster(); 
+
+        // 2. Silently update Supabase in the background FIRST
+        fetch(`${SUPABASE_BASE_URL}/rest/v1/notices?id=eq.${item.id}`, {
+          method: 'PATCH',
+          headers: { 
+            "apikey": SUPABASE_KEY, 
+            "Authorization": "Bearer " + SUPABASE_KEY,
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+          },
+          body: JSON.stringify({ registered_count: newCount })
+        }).then(response => {
+          if (!response.ok) {
+              console.error("Supabase update failed. Status:", response.status);
+          } else {
+              console.log("Supabase count updated successfully to", newCount);
+          }
+        }).catch(err => {
+          console.error("Network error updating count:", err);
+        });
+
+        // 3. Open the Google form in a new tab immediately after firing the fetch
+        setTimeout(() => {
+           window.open(item.reg_url || "https://forms.google.com", "_blank");
+        }, 50);
       }
 
       const markerEl = document.getElementById('hiro-marker');
