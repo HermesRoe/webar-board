@@ -249,6 +249,36 @@
         }
         drawPoster();
       }
+      async function incrementInterestedCount() {
+        if (!notices.length) return;
+        
+        // Get the current notice being viewed
+        const item = notices[currentIndex];
+        
+        // Add +1 to the count
+        const newCount = (item.registered_count || 0) + 1;
+        
+        // 1. Optimistic UI Update: Change it on the screen instantly so the user sees it
+        item.registered_count = newCount;
+        document.getElementById('pk-metric').innerText = `${newCount} Interested 📄`;
+        drawPoster(); // Redraw the AR canvas with the new number
+
+        // 2. Database Update: Send the new count to Supabase
+        try {
+          await fetch(`${SUPABASE_BASE_URL}/rest/v1/notices?id=eq.${item.id}`, {
+            method: 'PATCH',
+            headers: { 
+              "apikey": SUPABASE_KEY, 
+              "Authorization": "Bearer " + SUPABASE_KEY,
+              "Content-Type": "application/json",
+              "Prefer": "return=minimal"
+            },
+            body: JSON.stringify({ registered_count: newCount })
+          });
+        } catch (err) {
+          console.error("Failed to update interested count in database:", err);
+        }
+      }
 
       function drawPoster() {
         if (!notices.length) return;
