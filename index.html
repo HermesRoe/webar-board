@@ -237,6 +237,43 @@
         return `Ends in: ${String(d).padStart(2, '0')}d ${String(h).padStart(2, '0')}h`;
       }
 
+      async function handleRegisterClick(event) {
+  event.preventDefault(); // Stop the browser from immediately jumping to the link
+  
+  if (!notices.length) return;
+  const item = notices[currentIndex];
+  
+  // 1. Instantly update the UI so it feels responsive
+  const newCount = (item.registered_count || 0) + 1;
+  item.registered_count = newCount;
+  
+  document.getElementById('pk-metric').innerText = `${newCount} Interested 📄`;
+  drawPoster(); // Redraws the AR canvas
+
+  // 2. Open the Google form in a new tab immediately
+  window.open(item.reg_url || "https://forms.google.com", "_blank");
+
+  // 3. Silently update Supabase in the background
+  try {
+    const response = await fetch(`${SUPABASE_BASE_URL}/rest/v1/notices?id=eq.${item.id}`, {
+      method: 'PATCH',
+      headers: { 
+        "apikey": SUPABASE_KEY, 
+        "Authorization": "Bearer " + SUPABASE_KEY,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      },
+      body: JSON.stringify({ registered_count: newCount })
+    });
+    
+    if (!response.ok) {
+      console.error("Supabase blocked the update. Check your RLS policies!");
+    }
+  } catch (err) {
+    console.error("Network error updating count:", err);
+  }
+}
+
       async function loadCloudNotices() {
         try {
           const res = await fetch(`${SUPABASE_BASE_URL}/rest/v1/notices?select=*&order=id.desc`, {
