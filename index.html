@@ -240,7 +240,7 @@
 
       async function loadCloudNotices() {
         try {
-          const res = await fetch(`${SUPABASE_BASE_URL}/rest/v1/notices?select=*&order=id.desc`, {
+          const res = await fetch(`${SUPABASE_BASE_URL}/rest/v1/notices?select=*&order=registered_count.desc`, {
             headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY }
           });
           const data = await res.json();
